@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #e7f3ff;
+  --color-brand-100: #cce2ff;
+  --color-brand-200: #99c5ff;
+  --color-brand-300: #66a8ff;
+  --color-brand-400: #338bff;
+  --color-brand-500: #1877f2;
+  --color-brand-600: #166fe5;
+  --color-brand-700: #0e5fc7;
+  --color-brand-800: #0a4aa0;
+  --color-brand-900: #06357a;
+  --color-brand-950: #03204d;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
