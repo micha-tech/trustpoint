@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
+
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "TrustPoint — Identity & Verification",
-  description: "Secure identity verification platform",
+  title: "TrustPoint — Escrow & Payment Protection",
+  description: "Secure escrow and milestone-based payment protection for artisans and clients in Nigeria",
+  icons: [{ rel: "icon", url: "/logo.png" }],
 };
 
 export default function RootLayout({
@@ -14,12 +17,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <AuthProvider>
-          <Navbar />
-          <main>{children}</main>
-        </AuthProvider>
+    <html lang="en" className={inter.className}>
+      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

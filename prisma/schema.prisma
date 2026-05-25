@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────
+// USERS & PROFILES
+// ──────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  firebaseUid String @unique
+  phone     String?
+  email     String?
+  name      String?
+  role      String   @default("user") // user | artisan | admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  artisanProfile ArtisanProfile?
+  clientJobs     Job[]         @relation("ClientJobs")
+  artisanJobs    Job[]         @relation("ArtisanJobs")
+  approvals      Approval[]
+  disputes       Dispute[]
+  notifications  Notification[]
+}
+
+model ArtisanProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String?
+  description  String?
+  bankCode     String?
+  bankAccount  String?
+  bankName     String?
+  recipientCode String? // Paystack transfer recipient code
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────
+// JOBS & MILESTONES
+// ──────────────────────────────────────────
+
+enum JobStatus {
+  DRAFT
+  PENDING_PAYMENT
+  ACTIVE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  amount      Int       // in kobo (smallest currency unit)
+  fee         Int       @default(0) // platform fee in kobo
+  status      JobStatus @default(DRAFT)
+  ref         String    @unique // human-readable reference e.g. JOB-XXXXXX
+
+  clientId    String
+  client      User      @relation("ClientJobs", fields: [clientId], references: [id])
+  artisanId   String
+  artisan     User      @relation("ArtisanJobs", fields: [artisanId], references: [id])
+
+  milestones  Milestone[]
+  escrow      EscrowState?
+  disputes    Dispute[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([artisanId])
+  @@index([status])
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  APPROVED
+  RELEASED
+  DISPUTED
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  jobId       String
+  job         Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  amount      Int             // in kobo
+  status      MilestoneStatus @default(PENDING)
+  sortOrder   Int             @default(0)
+
+  approvals Approval[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────
+// ESCROW & PAYMENTS
+// ──────────────────────────────────────────
+
+enum EscrowStatus {
+  UNFUNDED
+  PARTIALLY_FUNDED
+  FUNDED
+  PARTIALLY_RELEASED
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+model EscrowState {
+  id            String       @id @default(cuid())
+  jobId         String       @unique
+  job           Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status        EscrowStatus @default(UNFUNDED)
+  totalAmount   Int          @default(0) // total escrowed in kobo
+  releasedAmount Int         @default(0)
+  pendingAmount Int          @default(0)
+  refundedAmount Int         @default(0)
+  version       Int          @default(1) // optimistic locking
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([status])
+}
+
+model PaymentReference {
+  id             String   @id @default(cuid())
+  jobId          String
+  reference      String   @unique // Paystack reference
+  amount         Int      // in kobo
+  currency       String   @default("NGN")
+  status         String   @default("pending") // pending | success | failed
+  channel        String?  // bank_transfer | card | virtual_account
+  paidAt         DateTime?
+  metadata       Json?
+  virtualAccount Json?    // Paystack virtual account details
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([reference])
+  @@index([status])
+}
+
+enum TransactionType {
+  PAYMENT_IN
+  ESCROW_RELEASE
+  PLATFORM_FEE
+  REFUND
+  TRANSFER_OUT
+  TRANSFER_FAILED
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  jobId       String
+  type        TransactionType
+  amount      Int             // in kobo (positive = inflow, negative = outflow)
+  balanceBefore Int
+  balanceAfter  Int
+  reference   String          @unique
+  description String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([reference])
+  @@index([type])
+}
+
+// ──────────────────────────────────────────
+// APPEND-ONLY LEDGER
+// ──────────────────────────────────────────
+
+model LedgerEntry {
+  id          String   @id @default(cuid())
+  jobId       String
+  event       String   // e.g. payment.received, milestone.approved, escrow.released
+  actorId     String?  // User who triggered the event
+  amount      Int?
+  balance     Int?
+  reference   String?
+  metadata    Json?
+  signature   String   // HMAC signature for integrity
+
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([event])
+  @@index([createdAt])
+}
+
+// ──────────────────────────────────────────
+// APPROVALS (signed)
+// ──────────────────────────────────────────
+
+model Approval {
+  id          String   @id @default(cuid())
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  token       String   @unique // signed approval token
+  expiresAt   DateTime
+  usedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([milestoneId])
+  @@index([token])
+}
+
+// ──────────────────────────────────────────
+// PAYOUTS
+// ──────────────────────────────────────────
+
+enum PayoutStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model PayoutRelease {
+  id             String       @id @default(cuid())
+  jobId          String
+  milestoneId    String?      @unique
+  amount         Int          // in kobo
+  status         PayoutStatus @default(PENDING)
+  recipientCode  String       // Paystack recipient code
+  transferCode   String?      // Paystack transfer code
+  reference      String       @unique
+  failureReason  String?
+
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([jobId])
+  @@index([status])
+  @@index([reference])
+}
+
+// ──────────────────────────────────────────
+// WEBHOOK EVENTS (idempotency)
+// ──────────────────────────────────────────
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  source        String   // paystack
+  eventId       String   @unique // Paystack event ID (idempotency key)
+  eventType     String
+  rawBody       Json
+  status        String   @default("received") // received | processing | processed | failed
+  processedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────
+// DISPUTES
+// ──────────────────────────────────────────
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_ARTISAN
+  RESOLVED_CLIENT
+  ESCALATED
+}
+
+model Dispute {
+  id          String         @id @default(cuid())
+  jobId       String
+  job         Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  raisedBy    String
+  raiser      User           @relation(fields: [raisedBy], references: [id])
+  reason      String
+  status      DisputeStatus  @default(OPEN)
+  resolution  String?
+  resolvedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────
+// NOTIFICATIONS
+// ──────────────────────────────────────────
+
+enum NotificationChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+  IN_APP
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel
+  title     String
+  body      String
+  reference String?
+  status    String               @default("pending") // pending | sent | failed
+  sentAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ──────────────────────────────────────────
+// VIRTUAL ACCOUNTS (Paystack DVA)
+// ──────────────────────────────────────────
+
+model VirtualAccount {
+  id              String @id @default(cuid())
+  jobId           String @unique
+  reference       String @unique
+  bankName        String
+  accountNumber   String
+  accountName     String
+  assignedAt      DateTime @default(now())
+  expiresAt       DateTime?
+
+  @@index([jobId])
+  @@index([accountNumber])
+}

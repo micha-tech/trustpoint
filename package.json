@@ -3,16 +3,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy:vercel": "vercel --prod",
-    "deploy:firebase": "set FIREBASE_DEPLOY=true && next build && cd functions && npm run build && cd .. && firebase deploy"
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "firebase": "^12.13.0",
     "firebase-admin": "^13.10.0",
     "next": "^16.2.6",
+    "pg": "^8.21.0",
+    "prisma": "^7.8.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

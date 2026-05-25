@@ -17,12 +17,23 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 
-if (typeof window !== "undefined" && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
+if (typeof window !== "undefined") {
+  try {
+    const hasAllKeys = Object.values(firebaseConfig).every(Boolean);
+    if (!hasAllKeys) {
+      console.warn(
+        "Firebase config incomplete – set NEXT_PUBLIC_FIREBASE_* env vars"
+      );
+    } else if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
 
-  if (process.env.NEXT_PUBLIC_USE_EMULATOR === "true") {
-    connectAuthEmulator(auth, "http://localhost:9099");
+      if (process.env.NEXT_PUBLIC_USE_EMULATOR === "true") {
+        connectAuthEmulator(auth, "http://localhost:9099");
+      }
+    }
+  } catch (e) {
+    console.error("Firebase init failed:", e);
   }
 }
 
