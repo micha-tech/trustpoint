@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyPaystackSignature } from "@/lib/security/webhooks";
 import { fundEscrow } from "@/lib/services/escrow";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 import { transitionJob, JobState } from "@/lib/state-machines";
 
-// ──────────────────────────────────────────
-// Paystack webhook handler
-// Idempotent, signature-verified, event-sourced
-// ──────────────────────────────────────────
-
 export async function POST(req: NextRequest) {
-  // 1. Read raw body for signature verification
   const rawBody = await req.text();
   const signature = req.headers.get("x-paystack-signature") ?? "";
 
@@ -23,32 +18,33 @@ export async function POST(req: NextRequest) {
   const eventId = payload.id;
   const eventType = payload.event;
 
-  // 2. Idempotency check — skip if already processed
-  const existing = await prisma.webhookEvent.findUnique({
-    where: { eventId },
-  });
-  if (existing && existing.status === "processed") {
-    return NextResponse.json({ ok: true, deduplicated: true });
+  // Atomic idempotency: unique constraint on eventId prevents concurrent processing
+  let webhook;
+  try {
+    webhook = await prisma.webhookEvent.create({
+      data: {
+        source: "paystack",
+        eventId,
+        eventType,
+        rawBody: payload,
+        status: "processing",
+      },
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return NextResponse.json({ ok: true, deduplicated: true });
+    }
+    throw e;
   }
 
-  // 3. Record incoming webhook
-  const webhook = await prisma.webhookEvent.upsert({
-    where: { eventId },
-    update: { status: "processing" },
-    create: {
-      source: "paystack",
-      eventId,
-      eventType,
-      rawBody: payload,
-      status: "processing",
-    },
-  });
-
   try {
-    // 4. Route by event type
     switch (eventType) {
       case "charge.success": {
         await handleChargeSuccess(payload.data);
+        break;
+      }
+      case "charge.failed": {
+        await handleChargeFailed(payload.data);
         break;
       }
       case "transfer.success": {
@@ -86,16 +82,16 @@ export async function POST(req: NextRequest) {
 
 async function handleChargeSuccess(data: any) {
   const reference: string = data.reference;
-  const amount: number = data.amount; // in kobo
+  const amount: number = data.amount;
   const channel: string = data.channel;
 
-  // Find the payment reference
   const paymentRef = await prisma.paymentReference.findUnique({
     where: { reference },
   });
   if (!paymentRef) throw new Error(`Unknown payment reference: ${reference}`);
 
-  // Verify amount matches — prevent under/overpayment
+  if (paymentRef.status === "success") return;
+
   if (amount !== paymentRef.amount) {
     throw new Error(
       `Amount mismatch for ${reference}: expected ${paymentRef.amount}, got ${amount}`
@@ -104,7 +100,6 @@ async function handleChargeSuccess(data: any) {
 
   const jobId = paymentRef.jobId;
 
-  // Update payment reference
   await prisma.paymentReference.update({
     where: { id: paymentRef.id },
     data: {
@@ -115,15 +110,12 @@ async function handleChargeSuccess(data: any) {
     },
   });
 
-  // Fund escrow
   await fundEscrow(jobId, amount);
 
-  // Transition job to ACTIVE
   const job = await prisma.job.findUniqueOrThrow({ where: { id: jobId } });
   const newStatus = transitionJob(job.status as JobState, JobState.ACTIVE);
   await prisma.job.update({ where: { id: jobId }, data: { status: newStatus } });
 
-  // Record ledger entry
   await writeLedgerEntry({
     jobId,
     event: "payment.received",
@@ -131,6 +123,24 @@ async function handleChargeSuccess(data: any) {
     balance: amount,
     reference,
     metadata: { channel },
+  });
+}
+
+// ──────────────────────────────────────────
+// Handle failed charge
+// ──────────────────────────────────────────
+
+async function handleChargeFailed(data: any) {
+  const reference: string = data.reference;
+  const paymentRef = await prisma.paymentReference.findUnique({
+    where: { reference },
+  });
+  if (!paymentRef) throw new Error(`Unknown payment reference: ${reference}`);
+  if (paymentRef.status !== "pending") return;
+
+  await prisma.paymentReference.update({
+    where: { id: paymentRef.id },
+    data: { status: "failed" },
   });
 }
 

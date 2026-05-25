@@ -20,7 +20,7 @@ export async function POST(
       return NextResponse.json({ error: "Payment reference not found" }, { status: 404 });
     }
 
-    if (paymentRef.status === "success") {
+    if (paymentRef.status !== "pending") {
       return NextResponse.json({ ok: true, alreadyVerified: true });
     }
 
@@ -31,8 +31,8 @@ export async function POST(
 
     const jobId = paymentRef.jobId;
 
-    await prisma.paymentReference.update({
-      where: { id: paymentRef.id },
+    const updated = await prisma.paymentReference.updateMany({
+      where: { reference, status: "pending" },
       data: {
         status: "success",
         channel: data.channel,
@@ -40,6 +40,10 @@ export async function POST(
         metadata: { ...(paymentRef.metadata as any), paystackData: data },
       },
     });
+
+    if (updated.count === 0) {
+      return NextResponse.json({ ok: true, alreadyVerified: true });
+    }
 
     await fundEscrow(jobId, data.amount);
 
