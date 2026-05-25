@@ -10,7 +10,7 @@ const cards = [
   {
     href: "/artisan/dashboard",
     title: "Artisan Dashboard",
-    desc: "Manage jobs, milestones, and receive payments",
+    desc: "Manage jobs and receive payments",
     icon: Briefcase,
   },
   {

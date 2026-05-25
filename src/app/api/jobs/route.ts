@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const user = await getUserFromToken(token);
     const body = await req.json();
 
-    const { title, description, amount, milestones, expectedCompletionDate } = body;
+    const { title, description, amount, expectedCompletionDate } = body;
 
     if (!title || !amount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -22,38 +22,17 @@ export async function POST(req: NextRequest) {
     const fee = Math.round(amount * 0.05);
     const payRef = generateRef("PAY");
 
-    const jobData: any = {
-      title,
-      description,
-      amount,
-      fee,
-      ref,
-      clientId: user.id,
-      artisanId: user.id,
-      expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
-    };
-
-    if (milestones?.length) {
-      const totalMilestoneAmount = milestones.reduce((s: number, m: any) => s + m.amount, 0);
-      if (totalMilestoneAmount !== amount) {
-        return NextResponse.json(
-          { error: "Milestone amounts must sum to job total" },
-          { status: 400 }
-        );
-      }
-      jobData.milestones = {
-        create: milestones.map((m: any, i: number) => ({
-          title: m.title,
-          description: m.description,
-          amount: m.amount,
-          sortOrder: i,
-        })),
-      };
-    }
-
     const job = await prisma.job.create({
-      data: jobData,
-      include: { milestones: { orderBy: { sortOrder: "asc" } } },
+      data: {
+        title,
+        description,
+        amount,
+        fee,
+        ref,
+        clientId: user.id,
+        artisanId: user.id,
+        expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
+      },
     });
 
     // Generate client token BEFORE creating payment link (need real URL)
@@ -91,7 +70,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      ...job,
+      id: job.id,
+      title: job.title,
+      description: job.description,
+      amount: job.amount,
+      fee: job.fee,
+      ref: job.ref,
       status: "PENDING_PAYMENT",
       paymentLink: paymentLink.authorizationUrl,
       clientUrl,
@@ -116,10 +100,7 @@ export async function GET(req: NextRequest) {
       where: {
         OR: [{ clientId: user.id }, { artisanId: user.id }],
       },
-      include: {
-        milestones: { orderBy: { sortOrder: "asc" } },
-        escrow: true,
-      },
+      include: { escrow: true },
       orderBy: { createdAt: "desc" },
     });
 

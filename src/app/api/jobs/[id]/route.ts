@@ -17,7 +17,6 @@ export async function GET(
     const job = await prisma.job.findFirst({
       where: { id, OR: [{ clientId: user.id }, { artisanId: user.id }] },
       include: {
-        milestones: { orderBy: { sortOrder: "asc" } },
         escrow: true,
         client: { select: { name: true, email: true, phone: true } },
         artisan: { select: { name: true, phone: true } },

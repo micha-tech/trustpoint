@@ -5,7 +5,7 @@ const steps = [
   {
     icon: Users,
     title: "Create a Job",
-    desc: "Define the work, set milestones, and agree on a price with your client.",
+    desc: "Define the work and agree on a price with your client.",
   },
   {
     icon: Lock,
@@ -15,25 +15,25 @@ const steps = [
   {
     icon: CheckCircle,
     title: "Release on Approval",
-    desc: "Complete milestones. Client approves. Funds released instantly.",
+    desc: "Complete the job. Client approves. Funds released instantly.",
   },
 ];
 
 const features = [
   {
     icon: Shield,
-    title: "Milestone Payments",
-    desc: "Split large projects into funded milestones. Pay as work is completed.",
-  },
-  {
-    icon: Shield,
-    title: "Escrow Protection",
-    desc: "Funds held securely, released only when both parties agree.",
+    title: "Payment Protection",
+    desc: "Clients pay into escrow. Funds only released when both parties agree the job is done.",
   },
   {
     icon: Shield,
     title: "Simple & Transparent",
     desc: "No hidden fees. Clear status on every payment. Built for Nigeria.",
+  },
+  {
+    icon: Shield,
+    title: "Fast Setup",
+    desc: "Create a job, share a link, get paid. No app needed for clients.",
   },
 ];
 
@@ -59,7 +59,7 @@ export default function Home() {
           </h1>
           <p className="mb-6 text-sm leading-relaxed text-muted-foreground sm:text-lg">
             TrustPoint holds payments in escrow and releases them
-            milestone-by-milestone. No chasing invoices. No paying for unfinished work.
+            when the job is done. No chasing invoices. No paying for unfinished work.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link

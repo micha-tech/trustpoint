@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "TrustPoint — Escrow & Payment Protection",
-  description: "Secure escrow and milestone-based payment protection for artisans and clients in Nigeria",
+  description: "Secure escrow and payment protection for artisans and clients in Nigeria",
   icons: [{ rel: "icon", url: "/logo.png" }],
 };
 
@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.className}>
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <AuthProvider>{children}</AuthProvider>
         <Toaster />
       </body>

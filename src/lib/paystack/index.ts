@@ -2,10 +2,6 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 
-// ──────────────────────────────────────────
-// Paystack integration service
-// ──────────────────────────────────────────
-
 const PAYSTACK_SECRET = () => process.env.PAYSTACK_SECRET_KEY ?? "";
 const PAYSTACK_BASE = "https://api.paystack.co";
 
@@ -22,10 +18,6 @@ async function paystackFetch(path: string, options: RequestInit = {}) {
   if (!json.status) throw new Error(`Paystack error: ${json.message}`);
   return json.data;
 }
-
-// ──────────────────────────────────────────
-// Create dedicated virtual account for a job
-// ──────────────────────────────────────────
 
 export async function createVirtualAccount(params: {
   jobId: string;
@@ -59,12 +51,8 @@ export async function createVirtualAccount(params: {
   };
 }
 
-// ──────────────────────────────────────────
-// Create a payment page link
-// ──────────────────────────────────────────
-
 export async function createPaymentLink(params: {
-  amount: number; // in kobo
+  amount: number;
   email: string;
   reference: string;
   callbackUrl: string;
@@ -83,17 +71,9 @@ export async function createPaymentLink(params: {
   return { authorizationUrl: data.authorization_url, reference: data.reference };
 }
 
-// ──────────────────────────────────────────
-// Verify payment reference
-// ──────────────────────────────────────────
-
 export async function verifyPayment(reference: string) {
   return paystackFetch(`/transaction/verify/${encodeURIComponent(reference)}`);
 }
-
-// ──────────────────────────────────────────
-// Create transfer recipient (artisan bank account)
-// ──────────────────────────────────────────
 
 export async function createTransferRecipient(params: {
   name: string;
@@ -113,38 +93,6 @@ export async function createTransferRecipient(params: {
 
   return { recipientCode: data.recipient_code };
 }
-
-// ──────────────────────────────────────────
-// Initiate transfer (payout to artisan)
-// ──────────────────────────────────────────
-
-export async function initiateTransfer(params: {
-  amount: number;
-  recipientCode: string;
-  reference: string;
-  reason?: string;
-}) {
-  const data = await paystackFetch("/transfer", {
-    method: "POST",
-    body: JSON.stringify({
-      source: "balance",
-      amount: params.amount,
-      recipient: params.recipientCode,
-      reference: params.reference,
-      reason: params.reason ?? "Milestone payout",
-    }),
-  });
-
-  return {
-    transferCode: data.transfer_code,
-    status: data.status,
-    reference: data.reference,
-  };
-}
-
-// ──────────────────────────────────────────
-// Record payment reference in our DB
-// ──────────────────────────────────────────
 
 export async function recordPaymentReference(params: {
   jobId: string;

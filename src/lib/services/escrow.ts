@@ -69,47 +69,6 @@ export async function fundEscrow(jobId: string, amount: number) {
   });
 }
 
-export async function releaseFromEscrow(
-  jobId: string,
-  amount: number,
-  milestoneId: string
-) {
-  return withRetry(async () => {
-    const escrow = await getOrCreateEscrow(jobId);
-    if (escrow.pendingAmount < amount) {
-      throw new Error("Insufficient escrow balance");
-    }
-
-    const next = transitionEscrow(
-      escrow.status as EscrowState,
-      escrow.totalAmount - escrow.releasedAmount === amount
-        ? EscrowState.RELEASED
-        : EscrowState.PARTIALLY_RELEASED
-    );
-
-    const updated = await prisma.escrowState.update({
-      where: { id: escrow.id, version: escrow.version },
-      data: {
-        status: next,
-        releasedAmount: { increment: amount },
-        pendingAmount: { decrement: amount },
-        version: { increment: 1 },
-      },
-    });
-
-    await writeLedgerEntry({
-      jobId,
-      event: "escrow.released",
-      amount: -amount,
-      balance: updated.releasedAmount,
-      reference: `release-${milestoneId}`,
-      metadata: { milestoneId },
-    });
-
-    return updated;
-  });
-}
-
 export async function refundEscrow(jobId: string) {
   return withRetry(async () => {
     const escrow = await getOrCreateEscrow(jobId);
