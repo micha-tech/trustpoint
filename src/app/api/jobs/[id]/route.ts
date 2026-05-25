@@ -41,7 +41,7 @@ export async function GET(
     const clientToken = generateClientAccessToken(job.id);
     const clientUrl = `${req.nextUrl.origin}/client/job/${clientToken}`;
 
-    return NextResponse.json({ ...job, paymentReferences, virtualAccount, clientUrl, clientToken });
+    return NextResponse.json({ ...job, paymentReferences, virtualAccount, clientUrl });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -62,9 +62,12 @@ export default function ClientJobPage() {
 
   const handleApprove = async (milestoneId: string) => {
     setApproving(milestoneId);
+    const ms = data?.milestones.find((m) => m.id === milestoneId);
     try {
       const res = await fetch(`/api/jobs/client/${token}/approve/${milestoneId}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvalToken: ms?.approvalToken }),
       });
       if (res.ok) loadJob();
     } finally {

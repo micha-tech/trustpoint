@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 interface MilestoneInput {
   title: string;
@@ -10,7 +11,7 @@ interface MilestoneInput {
   amount: string;
 }
 
-export default function NewJobPage() {
+function NewJobForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -244,5 +245,13 @@ export default function NewJobPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function NewJobPage() {
+  return (
+    <ProtectedRoute>
+      <NewJobForm />
+    </ProtectedRoute>
   );
 }

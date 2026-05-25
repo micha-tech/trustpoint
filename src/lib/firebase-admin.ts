@@ -26,5 +26,11 @@ function getAdminApp() {
   });
 }
 
-export const adminApp = getAdminApp();
-export const adminAuth = getAdminAuth(adminApp);
+let _adminAuth: ReturnType<typeof getAdminAuth> | undefined;
+
+export function getAdminAuthInstance() {
+  if (!_adminAuth) {
+    _adminAuth = getAdminAuth(getAdminApp());
+  }
+  return _adminAuth;
+}

@@ -95,6 +95,13 @@ async function handleChargeSuccess(data: any) {
   });
   if (!paymentRef) throw new Error(`Unknown payment reference: ${reference}`);
 
+  // Verify amount matches — prevent under/overpayment
+  if (amount !== paymentRef.amount) {
+    throw new Error(
+      `Amount mismatch for ${reference}: expected ${paymentRef.amount}, got ${amount}`
+    );
+  }
+
   const jobId = paymentRef.jobId;
 
   // Update payment reference

@@ -7,16 +7,32 @@ import { sendNotification, WHATSAPP_TEMPLATES } from "@/lib/notifications";
 
 // GET /api/milestones — list milestones for a job
 export async function GET(req: NextRequest) {
-  const jobId = req.nextUrl.searchParams.get("jobId");
-  if (!jobId) return NextResponse.json({ error: "jobId required" }, { status: 400 });
+  try {
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const milestones = await prisma.milestone.findMany({
-    where: { jobId },
-    orderBy: { sortOrder: "asc" },
-    include: { approvals: true },
-  });
+    const user = await getUserFromToken(token);
+    const jobId = req.nextUrl.searchParams.get("jobId");
+    if (!jobId) return NextResponse.json({ error: "jobId required" }, { status: 400 });
 
-  return NextResponse.json(milestones);
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { clientId: true, artisanId: true },
+    });
+    if (!job || (job.clientId !== user.id && job.artisanId !== user.id)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const milestones = await prisma.milestone.findMany({
+      where: { jobId },
+      orderBy: { sortOrder: "asc" },
+      include: { approvals: true },
+    });
+
+    return NextResponse.json(milestones);
+  } catch {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
 // PATCH /api/milestones — update milestone status (artisan marks complete)

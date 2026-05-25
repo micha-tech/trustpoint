@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/payments/[reference] — public payment page data
+// GET /api/payments/[reference] — payment page data (public, no auth)
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ reference: string }> }
@@ -22,16 +22,11 @@ export async function GET(
       select: { title: true, ref: true, amount: true, fee: true, description: true },
     });
 
-    const virtualAccount = await prisma.virtualAccount.findUnique({
-      where: { reference },
-      select: { bankName: true, accountNumber: true, accountName: true },
-    });
-
     return NextResponse.json({
       job,
-      virtualAccount,
-      paymentLink: `https://paystack.com/pay/${reference}`,
       reference,
+      status: paymentRef.status,
+      amount: paymentRef.amount,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
