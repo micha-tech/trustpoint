@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Loader2, CheckCircle, Shield, XCircle, Clock } from "lucide-react";
 
 type Milestone = {
   id: string;
@@ -27,7 +31,7 @@ type JobData = {
 };
 
 const DOT_COLORS: Record<string, string> = {
-  PENDING: "bg-gray-300",
+  PENDING: "bg-muted-foreground/30",
   IN_PROGRESS: "bg-brand-500",
   COMPLETED: "bg-amber-400",
   APPROVED: "bg-emerald-400",
@@ -69,7 +73,15 @@ export default function ClientJobPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approvalToken: ms?.approvalToken }),
       });
-      if (res.ok) loadJob();
+      if (res.ok) {
+        toast.success("Milestone approved and payment released");
+        loadJob();
+      } else {
+        const err = await res.json();
+        toast.error(err.error ?? "Could not approve milestone");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setApproving(null);
     }
@@ -78,7 +90,7 @@ export default function ClientJobPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="size-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-brand-500" />
       </div>
     );
   }
@@ -86,14 +98,12 @@ export default function ClientJobPage() {
   if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
-            <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="max-w-sm text-center">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <XCircle className="size-6" />
           </div>
-          <h1 className="text-lg font-bold text-gray-900">Link not valid</h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <h1 className="text-lg font-bold text-foreground">Link not valid</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             This payment link may have expired or is invalid. Ask the artisan to share a new link.
           </p>
         </div>
@@ -101,70 +111,83 @@ export default function ClientJobPage() {
     );
   }
 
-  const approvedCount = data.milestones.filter((m) => m.status === "APPROVED" || m.status === "RELEASED").length;
+  const approvedCount = data.milestones.filter(
+    (m) => m.status === "APPROVED" || m.status === "RELEASED"
+  ).length;
   const total = data.milestones.length;
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg px-4 py-6 sm:py-8">
-      <div className="mb-6 text-center sm:mb-8">
+    <div className="mx-auto min-h-screen max-w-lg px-4 py-6">
+      <div className="mb-6 text-center">
         <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-          <img src="/logo.png" alt="TrustPoint" className="mx-auto h-16 w-auto sm:h-20" />
+          <img src="/logo.png" alt="TrustPoint" className="mx-auto h-16 w-auto" />
         </Link>
       </div>
 
-      {/* Job header */}
-      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:mb-6 sm:p-6">
-        <p className="mb-1 text-xs text-gray-400">{data.ref}</p>
-        <h1 className="text-lg font-bold text-gray-900 sm:text-xl">{data.title}</h1>
-        {data.description && (
-          <p className="mt-2 text-sm leading-relaxed text-gray-500">{data.description}</p>
-        )}
-        <p className="mt-3 text-sm text-gray-500">
-          Artisan: <span className="font-medium text-gray-900">{data.artisan?.name ?? "Assigned"}</span>
-        </p>
-      </div>
+      <Card className="mb-4">
+        <CardContent className="p-5">
+          <p className="mb-1 text-xs text-muted-foreground">{data.ref}</p>
+          <h1 className="text-lg font-bold text-foreground">{data.title}</h1>
+          {data.description && (
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {data.description}
+            </p>
+          )}
+          <p className="mt-3 text-sm text-muted-foreground">
+            Artisan:{" "}
+            <span className="font-medium text-foreground">
+              {data.artisan?.name ?? "Assigned"}
+            </span>
+          </p>
+        </CardContent>
+      </Card>
 
-      {/* Progress */}
-      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:mb-6 sm:p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-gray-900">Progress</h2>
-          <span className="text-xs text-gray-400">{approvedCount}/{total} approved</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-          <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-            style={{ width: `${total > 0 ? (approvedCount / total) * 100 : 0}%` }}
-          />
-        </div>
-      </div>
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-medium text-foreground">Progress</h2>
+            <span className="text-xs text-muted-foreground">
+              {approvedCount}/{total} approved
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              style={{
+                width: `${total > 0 ? (approvedCount / total) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Escrow */}
       {data.escrow && (
-        <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:mb-6 sm:p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <Shield className="size-4" />
+              </div>
+              <span className="text-sm font-medium text-foreground">Payment</span>
             </div>
-            <span className="text-sm font-medium text-gray-900">Payment</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-gray-900">
-              ₦{(data.escrow.totalAmount / 100).toLocaleString()}
-            </span>
-            <span className="text-sm text-gray-500">
-              {data.escrow.releasedAmount > 0
-                ? `${(data.escrow.releasedAmount / 100).toLocaleString()} released`
-                : data.escrow.status === "FUNDED" ? "in escrow" : "awaiting payment"}
-            </span>
-          </div>
-        </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-foreground">
+                ₦{(data.escrow.totalAmount / 100).toLocaleString()}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {data.escrow.releasedAmount > 0
+                  ? `${(data.escrow.releasedAmount / 100).toLocaleString()} released`
+                  : data.escrow.status === "FUNDED"
+                    ? "held securely in escrow"
+                    : "awaiting payment"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Milestones */}
       <div className="space-y-3">
-        <h2 className="text-sm font-medium text-gray-900">Milestones</h2>
+        <h2 className="text-sm font-medium text-foreground">Milestones</h2>
         {data.milestones.map((ms) => {
           const needsApproval = ms.status === "COMPLETED";
           const isDone = ms.status === "APPROVED" || ms.status === "RELEASED";
@@ -177,46 +200,68 @@ export default function ClientJobPage() {
                   ? "border-brand-300 bg-brand-50/40"
                   : isDone
                     ? "border-emerald-200 bg-emerald-50/30"
-                    : "border-gray-200"
+                    : "border-border"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <div className={`size-2 shrink-0 rounded-full ${DOT_COLORS[ms.status] ?? "bg-gray-300"}`} />
-                    <span className={`text-sm font-medium ${isDone ? "text-emerald-700" : "text-gray-900"}`}>
+                    <div
+                      className={`size-2 shrink-0 rounded-full ${
+                        DOT_COLORS[ms.status] ?? "bg-muted-foreground/30"
+                      }`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        isDone ? "text-emerald-700" : "text-foreground"
+                      }`}
+                    >
                       {ms.title}
                     </span>
                   </div>
                   {ms.description && (
-                    <p className="mt-1 text-xs text-gray-500 ml-4">{ms.description}</p>
+                    <p className="mt-1 text-xs text-muted-foreground ml-4">
+                      {ms.description}
+                    </p>
                   )}
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-gray-900">
+                <span className="shrink-0 text-sm font-semibold text-foreground">
                   ₦{(ms.amount / 100).toLocaleString()}
                 </span>
               </div>
 
               <div className="mt-3 flex items-center justify-between">
-                <span className={`text-xs font-medium ${isDone ? "text-emerald-600" : needsApproval ? "text-amber-600" : "text-gray-400"}`}>
+                <span
+                  className={`flex items-center gap-1 text-xs font-medium ${
+                    isDone
+                      ? "text-emerald-600"
+                      : needsApproval
+                        ? "text-amber-600"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  {ms.status === "COMPLETED" ? (
+                    <Clock className="size-3" />
+                  ) : isDone ? (
+                    <CheckCircle className="size-3" />
+                  ) : null}
                   {STATUS_LABELS[ms.status] ?? ms.status}
                 </span>
 
                 {needsApproval && (
-                  <button
+                  <Button
                     onClick={() => handleApprove(ms.id)}
                     disabled={approving === ms.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.95] disabled:opacity-60 sm:py-1.5"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700"
                   >
                     {approving === ms.id ? (
-                      <span className="size-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      <Loader2 className="size-3.5 animate-spin" />
                     ) : (
-                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <CheckCircle className="size-3.5" />
                     )}
                     Approve & Release
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -224,8 +269,10 @@ export default function ClientJobPage() {
         })}
       </div>
 
-      <div className="mt-8 text-center text-xs text-gray-400">
-        <p>Powered by <span className="font-medium text-gray-500">TrustPoint</span></p>
+      <div className="mt-8 text-center text-xs text-muted-foreground">
+        <p>
+          Powered by <span className="font-medium text-foreground">TrustPoint</span>
+        </p>
         <p className="mt-1">Funds held in escrow. Only released when you approve.</p>
       </div>
     </div>

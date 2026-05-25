@@ -1,9 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useParams } from "next/navigation";
 import Link from "next/link";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Link2,
+  Wallet,
+  Landmark,
+  ArrowUpRight,
+  Loader2,
+} from "lucide-react";
 
 type Milestone = {
   id: string;
@@ -30,7 +43,7 @@ type Job = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
+  DRAFT: "bg-muted text-muted-foreground",
   PENDING_PAYMENT: "bg-amber-50 text-amber-700",
   ACTIVE: "bg-blue-50 text-blue-700",
   IN_PROGRESS: "bg-indigo-50 text-indigo-700",
@@ -39,36 +52,17 @@ const STATUS_COLORS: Record<string, string> = {
   DISPUTED: "bg-orange-50 text-orange-700",
 };
 
-const MS_DOT: Record<string, string> = {
-  PENDING: "bg-gray-300",
-  IN_PROGRESS: "bg-brand-500",
-  COMPLETED: "bg-amber-400",
-  APPROVED: "bg-emerald-400",
-  RELEASED: "bg-emerald-500",
-  DISPUTED: "bg-orange-500",
-};
-
-const MS_BORDER: Record<string, string> = {
-  PENDING: "border-gray-200",
-  IN_PROGRESS: "border-brand-300 bg-brand-50/30",
-  COMPLETED: "border-amber-300 bg-amber-50/30",
-  APPROVED: "border-emerald-300 bg-emerald-50/30",
-  RELEASED: "border-emerald-400 bg-emerald-50/50",
-  DISPUTED: "border-orange-300 bg-orange-50/30",
-};
-
-const MS_TEXT: Record<string, string> = {
-  PENDING: "text-gray-400",
-  IN_PROGRESS: "text-brand-600",
-  COMPLETED: "text-amber-600",
-  APPROVED: "text-emerald-600",
-  RELEASED: "text-emerald-700",
-  DISPUTED: "text-orange-600",
+const MS_STYLES: Record<string, { dot: string; border: string; text: string }> = {
+  PENDING: { dot: "bg-muted-foreground/30", border: "border-border", text: "text-muted-foreground" },
+  IN_PROGRESS: { dot: "bg-brand-500", border: "border-brand-300 bg-brand-50/30", text: "text-brand-600" },
+  COMPLETED: { dot: "bg-amber-400", border: "border-amber-300 bg-amber-50/30", text: "text-amber-600" },
+  APPROVED: { dot: "bg-emerald-400", border: "border-emerald-300 bg-emerald-50/30", text: "text-emerald-600" },
+  RELEASED: { dot: "bg-emerald-500", border: "border-emerald-400 bg-emerald-50/50", text: "text-emerald-700" },
+  DISPUTED: { dot: "bg-orange-500", border: "border-orange-300 bg-orange-50/30", text: "text-orange-600" },
 };
 
 function JobDetail() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -88,21 +82,28 @@ function JobDetail() {
 
   const handleMilestoneComplete = async (milestoneId: string) => {
     const token = localStorage.getItem("token");
-    await fetch("/api/milestones", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ milestoneId, status: "COMPLETED" }),
-    });
-    loadJob();
+    try {
+      const res = await fetch("/api/milestones", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ milestoneId, status: "COMPLETED" }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Milestone marked as complete");
+      loadJob();
+    } catch {
+      toast.error("Could not update milestone");
+    }
   };
 
   const copyLink = () => {
     if (job?.clientUrl) {
       navigator.clipboard.writeText(job.clientUrl);
       setCopied(true);
+      toast.success("Link copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -110,7 +111,7 @@ function JobDetail() {
   if (loading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="size-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-brand-500" />
       </div>
     );
   }
@@ -118,7 +119,7 @@ function JobDetail() {
   if (!job) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-gray-500">Job not found</p>
+        <p className="text-muted-foreground">Job not found</p>
       </div>
     );
   }
@@ -128,15 +129,13 @@ function JobDetail() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:py-12">
-      <div className="mb-6 -ml-2">
+    <div className="mx-auto max-w-2xl px-4 py-6">
+      <div className="mb-6">
         <Link
           href="/artisan/dashboard"
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeft className="size-4" />
           Dashboard
         </Link>
       </div>
@@ -144,152 +143,157 @@ function JobDetail() {
       <div className="mb-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold text-gray-900 sm:text-2xl">{job.title}</h1>
-            <p className="mt-0.5 text-xs text-gray-400">{job.ref}</p>
+            <h1 className="truncate text-lg font-bold text-foreground">{job.title}</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">{job.ref}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[job.status] ?? "bg-gray-50 text-gray-600"}`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[job.status] ?? "bg-muted text-muted-foreground"}`}
           >
             {job.status.replace("_", " ")}
           </span>
         </div>
         {job.description && (
-          <p className="mt-3 text-sm leading-relaxed text-gray-500">{job.description}</p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{job.description}</p>
         )}
       </div>
 
-      {/* Client link — shown when job is waiting for payment */}
       {job.clientUrl && job.status === "PENDING_PAYMENT" && (
-        <div className="mb-5 rounded-2xl border border-brand-200 bg-brand-50 p-4 shadow-sm sm:mb-6 sm:p-5">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-800">
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            Share this link with your client
-          </h3>
-          <div className="flex items-center gap-2 overflow-hidden rounded-lg border border-brand-200 bg-white pl-3 pr-1">
-            <span className="min-w-0 flex-1 truncate py-2 text-xs text-gray-600">{job.clientUrl}</span>
-            <button
-              onClick={copyLink}
-              className="shrink-0 rounded-lg bg-brand-500 px-4 py-2.5 text-xs font-medium text-white transition-all hover:bg-brand-600 active:scale-[0.95] sm:py-2"
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-        </div>
+        <Card className="mb-5 border-brand-200 bg-brand-50 sm:mb-6">
+          <CardContent className="p-4 sm:p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-800">
+              <Link2 className="size-4" />
+              Share this link with your client
+            </h3>
+            <div className="flex items-center gap-2 overflow-hidden rounded-lg border border-brand-200 bg-background pl-3 pr-1">
+              <span className="min-w-0 flex-1 truncate py-2 text-xs text-muted-foreground">{job.clientUrl}</span>
+              <Button onClick={copyLink} size="sm" className="shrink-0">
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Payment details — shown when payment info exists */}
       {(job.paymentReferences?.length > 0 || job.virtualAccount) && (
         <div className="mb-6 space-y-3">
           {job.virtualAccount && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-900">
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Bank Transfer Details
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Bank</span>
-                  <span className="font-medium text-gray-900">{job.virtualAccount.bankName}</span>
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Landmark className="size-4" />
+                  Bank Transfer Details
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bank</span>
+                    <span className="font-medium text-foreground">{job.virtualAccount.bankName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Account Number</span>
+                    <span className="font-mono font-bold text-foreground">{job.virtualAccount.accountNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Account Name</span>
+                    <span className="font-medium text-foreground">{job.virtualAccount.accountName}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Account Number</span>
-                  <span className="font-mono font-bold text-gray-900">{job.virtualAccount.accountNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Account Name</span>
-                  <span className="font-medium text-gray-900">{job.virtualAccount.accountName}</span>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
           {job.paymentReferences.map((pr) => (
-            <div key={pr.reference} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div>
-                <p className="text-xs text-gray-500">Payment Reference</p>
-                <p className="text-sm font-mono font-medium text-gray-900">{pr.reference}</p>
-              </div>
-              <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">{pr.status}</span>
-            </div>
+            <Card key={pr.reference}>
+              <CardContent className="flex items-center justify-between p-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Payment Reference</p>
+                  <p className="font-mono text-sm font-medium text-foreground">{pr.reference}</p>
+                </div>
+                <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">
+                  {pr.status}
+                </span>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
-      {/* Escrow card */}
       {job.escrow && (
-        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <Card className="mb-6">
+          <CardContent className="p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <Wallet className="size-4" />
+              </div>
+              <span className="text-sm font-medium text-foreground">Escrow</span>
             </div>
-            <span className="text-sm font-medium text-gray-900">Escrow</span>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs text-gray-400">Total</p>
-              <p className="font-semibold text-gray-900">₦{(job.escrow.totalAmount / 100).toLocaleString()}</p>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-semibold text-foreground">
+                  ₦{(job.escrow.totalAmount / 100).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Released</p>
+                <p className="font-semibold text-emerald-600">
+                  ₦{(job.escrow.releasedAmount / 100).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Pending</p>
+                <p className="font-semibold text-brand-600">
+                  ₦{(job.escrow.pendingAmount / 100).toLocaleString()}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-400">Released</p>
-              <p className="font-semibold text-emerald-600">₦{(job.escrow.releasedAmount / 100).toLocaleString()}</p>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-brand-500 transition-all duration-500"
+                style={{ width: `${escrowProgress}%` }}
+              />
             </div>
-            <div>
-              <p className="text-xs text-gray-400">Pending</p>
-              <p className="font-semibold text-brand-600">₦{(job.escrow.pendingAmount / 100).toLocaleString()}</p>
-            </div>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100">
-            <div
-              className="h-full rounded-full bg-brand-500 transition-all duration-500"
-              style={{ width: `${escrowProgress}%` }}
-            />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Milestones */}
       <div className="mb-6">
-        <h2 className="mb-3 text-sm font-medium text-gray-900">Milestones</h2>
+        <h2 className="mb-3 text-sm font-medium text-foreground">Milestones</h2>
         <div className="space-y-2">
-          {job.milestones.map((ms) => (
-            <div
-              key={ms.id}
-              className={`rounded-xl border p-4 transition-all ${MS_BORDER[ms.status] ?? "border-gray-200"}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`size-2 shrink-0 rounded-full ${MS_DOT[ms.status] ?? "bg-gray-300"}`} />
-                    <span className="text-sm font-medium text-gray-900">{ms.title}</span>
+          {job.milestones.map((ms) => {
+            const s = MS_STYLES[ms.status] ?? MS_STYLES.PENDING;
+            return (
+              <div key={ms.id} className={`rounded-xl border p-4 transition-all ${s.border}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className={`size-2 shrink-0 rounded-full ${s.dot}`} />
+                      <span className="text-sm font-medium text-foreground">{ms.title}</span>
+                    </div>
+                    {ms.description && (
+                      <p className="mt-1 text-xs text-muted-foreground ml-4">{ms.description}</p>
+                    )}
                   </div>
-                  {ms.description && (
-                    <p className="mt-1 text-xs text-gray-500 ml-4">{ms.description}</p>
-                  )}
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-sm font-semibold text-foreground">
+                      ₦{(ms.amount / 100).toLocaleString()}
+                    </span>
+                    {ms.status === "IN_PROGRESS" && (
+                      <Button
+                        onClick={() => handleMilestoneComplete(ms.id)}
+                        size="sm"
+                      >
+                        <ArrowUpRight className="size-3.5" />
+                        Complete
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-900">
-                    ₦{(ms.amount / 100).toLocaleString()}
-                  </span>
-                  {ms.status === "IN_PROGRESS" && (
-                    <button
-                      onClick={() => handleMilestoneComplete(ms.id)}
-                      className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-brand-600 active:scale-[0.95]"
-                    >
-                      Complete
-                    </button>
-                  )}
-                </div>
+                <span className={`mt-2 inline-block text-xs font-medium ${s.text}`}>
+                  {ms.status === "COMPLETED" ? "Awaiting client approval" : ms.status.replace("_", " ")}
+                </span>
               </div>
-              <span className={`mt-2 inline-block text-xs font-medium ${MS_TEXT[ms.status] ?? "text-gray-400"}`}>
-                {ms.status === "COMPLETED" ? "Awaiting client approval" : ms.status.replace("_", " ")}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
