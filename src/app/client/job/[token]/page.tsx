@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
@@ -60,6 +59,15 @@ export default function ClientJobPage() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("reference") || params.get("trxref");
+    if (ref) {
+      fetch(`/api/payments/${ref}/verify`, { method: "POST" })
+        .then((r) => { if (r.ok) toast.success("Payment verified"); })
+        .catch(() => {})
+        .finally(() => loadJob());
+      return;
+    }
     loadJob();
   }, [token]);
 
@@ -119,8 +127,9 @@ export default function ClientJobPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
         <Loader2 className="size-6 animate-spin text-brand-500" />
+        <p className="text-sm text-muted-foreground">Verifying payment...</p>
       </div>
     );
   }
