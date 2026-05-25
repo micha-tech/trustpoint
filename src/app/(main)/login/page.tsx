@@ -98,19 +98,24 @@ export default function LoginPage() {
       setStep("otp");
       setCooldown(30);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("invalid-phone-number") || msg.includes("invalid-phone")) {
+      const fbErr = err as { code?: string; message?: string };
+      const code = fbErr?.code ?? "";
+      const msg = fbErr?.message ?? "";
+      console.error("Phone auth error:", { code, message: msg });
+      if (code.includes("invalid-phone-number") || code.includes("invalid-phone") || msg.includes("invalid-phone-number") || msg.includes("invalid-phone")) {
         toast.error("Enter a valid phone number (e.g. 08012345678)");
-      } else if (msg.includes("too-many-requests") || msg.includes("too-many")) {
+      } else if (code.includes("too-many-requests") || msg.includes("too-many-requests") || msg.includes("too-many")) {
         toast.error("Too many attempts. Please wait and try again.");
-      } else if (msg.includes("operation-not-allowed")) {
-        toast.error("Phone sign-in is not enabled. Contact support.");
-      } else if (msg.includes("quota-exceeded")) {
+      } else if (code.includes("operation-not-allowed") || msg.includes("operation-not-allowed")) {
+        toast.error("Phone sign-in is not enabled in the Firebase console. Contact support.");
+      } else if (code.includes("quota-exceeded") || msg.includes("quota-exceeded")) {
         toast.error("Service temporarily unavailable. Try again later.");
-      } else if (msg.includes("captcha-check-failed")) {
+      } else if (code.includes("captcha-check-failed") || msg.includes("captcha-check-failed")) {
         toast.error("Security check failed. Please refresh and try again.");
-      } else if (msg.includes("recaptcha-not-ready")) {
+      } else if (code.includes("recaptcha-not-ready") || msg.includes("recaptcha-not-ready")) {
         toast.error("Security check still loading. Please wait a moment and try again.");
+      } else if (code.includes("recaptcha") || msg.includes("recaptcha")) {
+        toast.error("Security verification unavailable. Try again or contact support.");
       } else {
         toast.error("Unable to verify right now. Please try again.");
       }
@@ -128,7 +133,9 @@ export default function LoginPage() {
       localStorage.setItem("token", token);
       toast.success("Signed in successfully");
       setSignedIn(true);
-    } catch {
+    } catch (err) {
+      const fbErr = err as { code?: string; message?: string };
+      console.error("OTP verification error:", { code: fbErr?.code, message: fbErr?.message });
       toast.error("Incorrect code. Try again.");
     } finally {
       setLoading(false);
