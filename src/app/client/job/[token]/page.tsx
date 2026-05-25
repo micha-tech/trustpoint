@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -50,13 +50,13 @@ export default function ClientJobPage() {
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
 
-  const loadJob = () => {
+  const loadJob = useCallback(() => {
     fetch(`/api/jobs/client/${token}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  };
+  }, [token]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -69,7 +69,17 @@ export default function ClientJobPage() {
       return;
     }
     loadJob();
-  }, [token]);
+  }, [loadJob]);
+
+  // Poll every 5s while waiting for artisan to mark complete
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (data && (data.status === "ACTIVE" || data.status === "IN_PROGRESS")) {
+      pollRef.current = setInterval(loadJob, 5000);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [data?.status, loadJob]);
 
   const getViewState = (): ViewState => {
     if (!data) return "error";

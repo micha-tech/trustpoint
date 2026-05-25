@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -110,6 +110,16 @@ function JobDetail() {
   useEffect(() => {
     loadJob();
   }, [loadJob]);
+
+  // Poll every 5s when awaiting client action
+  const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  useEffect(() => {
+    const shouldPoll = job && job.status === "COMPLETED" && !job.approvedAt;
+    if (shouldPoll) {
+      pollRef.current = setInterval(loadJob, 5000);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [job?.status, job?.approvedAt, loadJob]);
 
   const copyLink = () => {
     if (job?.clientUrl) {
