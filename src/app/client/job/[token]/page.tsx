@@ -105,17 +105,17 @@ export default function ClientJobPage() {
   const total = data.milestones.length;
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg px-4 py-8">
-      <div className="mb-8 text-center">
+    <div className="mx-auto min-h-screen max-w-lg px-4 py-6 sm:py-8">
+      <div className="mb-6 text-center sm:mb-8">
         <Link href="/" className="inline-block transition-opacity hover:opacity-80">
           <img src="/logo.png" alt="TrustPoint" className="mx-auto h-16 w-auto sm:h-20" />
         </Link>
       </div>
 
       {/* Job header */}
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:mb-6 sm:p-6">
         <p className="mb-1 text-xs text-gray-400">{data.ref}</p>
-        <h1 className="text-xl font-bold text-gray-900">{data.title}</h1>
+        <h1 className="text-lg font-bold text-gray-900 sm:text-xl">{data.title}</h1>
         {data.description && (
           <p className="mt-2 text-sm leading-relaxed text-gray-500">{data.description}</p>
         )}
@@ -125,7 +125,7 @@ export default function ClientJobPage() {
       </div>
 
       {/* Progress */}
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:mb-6 sm:p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-gray-900">Progress</h2>
           <span className="text-xs text-gray-400">{approvedCount}/{total} approved</span>
@@ -140,7 +140,7 @@ export default function ClientJobPage() {
 
       {/* Escrow */}
       {data.escrow && (
-        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:mb-6 sm:p-5">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,7 +206,7 @@ export default function ClientJobPage() {
                   <button
                     onClick={() => handleApprove(ms.id)}
                     disabled={approving === ms.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.95] disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.95] disabled:opacity-60 sm:py-1.5"
                   >
                     {approving === ms.id ? (
                       <span className="size-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />

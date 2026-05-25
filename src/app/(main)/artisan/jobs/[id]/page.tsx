@@ -128,21 +128,23 @@ function JobDetail() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
-      <Link
-        href="/artisan/dashboard"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-700"
-      >
-        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Dashboard
-      </Link>
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:py-12">
+      <div className="mb-6 -ml-2">
+        <Link
+          href="/artisan/dashboard"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+        >
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Dashboard
+        </Link>
+      </div>
 
       <div className="mb-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold text-gray-900">{job.title}</h1>
+            <h1 className="truncate text-lg font-bold text-gray-900 sm:text-2xl">{job.title}</h1>
             <p className="mt-0.5 text-xs text-gray-400">{job.ref}</p>
           </div>
           <span
@@ -158,7 +160,7 @@ function JobDetail() {
 
       {/* Client link — shown when job is waiting for payment */}
       {job.clientUrl && job.status === "PENDING_PAYMENT" && (
-        <div className="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-brand-200 bg-brand-50 p-4 shadow-sm sm:mb-6 sm:p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-800">
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -169,7 +171,7 @@ function JobDetail() {
             <span className="min-w-0 flex-1 truncate py-2 text-xs text-gray-600">{job.clientUrl}</span>
             <button
               onClick={copyLink}
-              className="shrink-0 rounded-lg bg-brand-500 px-4 py-2 text-xs font-medium text-white transition-all hover:bg-brand-600 active:scale-[0.95]"
+              className="shrink-0 rounded-lg bg-brand-500 px-4 py-2.5 text-xs font-medium text-white transition-all hover:bg-brand-600 active:scale-[0.95] sm:py-2"
             >
               {copied ? "Copied!" : "Copy"}
             </button>
