@@ -24,7 +24,7 @@ const cards = [
 function DashboardContent() {
   const { user } = useAuth();
 
-  const displayName = user?.phoneNumber ?? user?.email?.split("@")[0] ?? "there";
+  const displayName = user?.email?.split("@")[0] ?? user?.phoneNumber ?? "there";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">

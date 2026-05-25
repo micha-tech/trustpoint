@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  type ConfirmationResult,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
@@ -14,29 +14,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Phone, ShieldCheck } from "lucide-react";
-
-type Step = "phone" | "otp";
-
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 10) return "";
-  if (digits.startsWith("234") && digits.length === 13) return `+${digits}`;
-  if (digits.startsWith("0") && digits.length === 11) return `+234${digits.slice(1)}`;
-  if (digits.startsWith("234") && digits.length === 12) return `+234${digits}`;
-  return `+${digits}`;
-}
+import { Loader2, LockKeyhole } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { user: authUser, loading: authLoading } = useAuth();
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-  const confirmationRef = useRef<ConfirmationResult | null>(null);
 
   useEffect(() => {
     if (signedIn && !authLoading && authUser) {
@@ -45,107 +32,77 @@ export default function LoginPage() {
   }, [signedIn, authLoading, authUser, router]);
 
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
-  useEffect(() => {
-    return () => {
-      const win = window as unknown as { recaptchaVerifier?: RecaptchaVerifier };
-      if (win.recaptchaVerifier) {
-        try { win.recaptchaVerifier.clear(); } catch { /* ignore */ }
-        delete win.recaptchaVerifier;
-      }
-    };
-  }, []);
-
-  const setupRecaptcha = () => {
-    if (!auth || typeof window === "undefined") return null;
-    const win = window as unknown as { recaptchaVerifier?: RecaptchaVerifier };
-    if (win.recaptchaVerifier) {
-      try { win.recaptchaVerifier.clear(); } catch { /* ignore */ }
+    if (!authLoading && authUser && !signedIn) {
+      router.replace("/dashboard");
     }
-    const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      size: "invisible",
-    });
-    win.recaptchaVerifier = verifier;
-    return verifier;
-  };
+  }, [authLoading, authUser, router, signedIn]);
 
-  const handleSendOtp = async () => {
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!auth) {
-      toast.error("Unable to verify right now. Please try again.");
+      toast.error("Unable to sign in right now. Please try again.");
       return;
     }
-    if (!phone.trim()) {
-      toast.error("Enter a valid phone number");
-      return;
-    }
+    if (!email.trim() || !password.trim()) return;
     setLoading(true);
     try {
-      const verifier = setupRecaptcha();
-      if (!verifier) throw new Error("Could not set up verification");
-      const e164 = formatPhone(phone);
-      if (!e164) {
-        toast.error("Enter a valid phone number (e.g. 08012345678)");
-        return;
-      }
-      const confirmation = await signInWithPhoneNumber(auth, e164, verifier);
-      confirmationRef.current = confirmation;
-      setOtp("");
-      toast.success("Verification code sent");
-      setStep("otp");
-      setCooldown(30);
+      await signInWithEmailAndPassword(auth, email, password);
+      const token = await auth.currentUser!.getIdToken();
+      localStorage.setItem("token", token);
+      toast.success("Signed in successfully");
+      setSignedIn(true);
     } catch (err: unknown) {
       const fbErr = err as { code?: string; message?: string };
       const code = fbErr?.code ?? "";
       const msg = fbErr?.message ?? "";
-      console.error("Phone auth error:", { code, message: msg });
-      if (code.includes("invalid-phone-number") || code.includes("invalid-phone") || msg.includes("invalid-phone-number") || msg.includes("invalid-phone")) {
-        toast.error("Enter a valid phone number (e.g. 08012345678)");
-      } else if (code.includes("too-many-requests") || msg.includes("too-many-requests") || msg.includes("too-many")) {
-        toast.error("Too many attempts. Please wait and try again.");
-      } else if (code.includes("operation-not-allowed") || msg.includes("operation-not-allowed")) {
-        toast.error("Phone sign-in is not enabled in the Firebase console. Contact support.");
-      } else if (code.includes("quota-exceeded") || msg.includes("quota-exceeded")) {
-        toast.error("Service temporarily unavailable. Try again later.");
-      } else if (code.includes("captcha-check-failed") || msg.includes("captcha-check-failed")) {
-        toast.error("Security check failed. Please refresh and try again.");
-      } else if (code.includes("recaptcha-not-ready") || msg.includes("recaptcha-not-ready")) {
-        toast.error("Security check still loading. Please wait a moment and try again.");
-      } else if (code.includes("recaptcha") || msg.includes("recaptcha")) {
-        toast.error("Security verification unavailable. Try again or contact support.");
+      console.error("Email sign-in error:", { code, message: msg });
+      if (code.includes("user-not-found") || msg.includes("user-not-found")) {
+        toast.error("No account found with this email. Create one below.");
+      } else if (code.includes("wrong-password") || code.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
+        toast.error("Incorrect password. Try again.");
+      } else if (code.includes("too-many-requests") || msg.includes("too-many-requests")) {
+        toast.error("Too many attempts. Please wait a moment and try again.");
+      } else if (code.includes("user-disabled") || msg.includes("user-disabled")) {
+        toast.error("This account has been disabled. Contact support.");
+      } else if (code.includes("billing-not-enabled") || msg.includes("billing-not-enabled")) {
+        toast.error("Authentication service unavailable. Contact support.");
       } else {
-        toast.error("Unable to verify right now. Please try again.");
+        toast.error("Unable to sign in. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!confirmationRef.current || !otp.trim()) return;
-    setLoading(true);
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    setGoogleLoading(true);
     try {
-      const result = await confirmationRef.current.confirm(otp);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
       const token = await result.user.getIdToken();
       localStorage.setItem("token", token);
-      toast.success("Signed in successfully");
+      toast.success("Signed in with Google");
       setSignedIn(true);
-    } catch (err) {
+    } catch (err: unknown) {
       const fbErr = err as { code?: string; message?: string };
-      console.error("OTP verification error:", { code: fbErr?.code, message: fbErr?.message });
-      toast.error("Incorrect code. Try again.");
+      const code = fbErr?.code ?? "";
+      const msg = fbErr?.message ?? "";
+      console.error("Google sign-in error:", { code, message: msg });
+      if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
+        // user just closed the popup — no toast needed
+      } else if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {
+        toast.error("Pop-up was blocked. Please allow pop-ups for this site.");
+      } else if (code.includes("account-exists-with-different-credential") || msg.includes("account-exists-with-different-credential")) {
+        toast.error("An account with this email already exists. Sign in with your email and password.");
+      } else if (code.includes("billing-not-enabled") || msg.includes("billing-not-enabled")) {
+        toast.error("Authentication service unavailable. Contact support.");
+      } else {
+        toast.error("Unable to sign in with Google. Try again.");
+      }
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
-  };
-
-  const handleResend = () => {
-    if (cooldown > 0) return;
-    setOtp("");
-    handleSendOtp();
   };
 
   return (
@@ -161,104 +118,85 @@ export default function LoginPage() {
             <img src="/logo.png" alt="TrustPoint" className="mx-auto h-10 w-auto" />
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Secure payments for real-world jobs</h1>
-          {step === "phone" && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Enter your phone number to get started
-            </p>
-          )}
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to manage your jobs</p>
           {signedIn && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Signing you in...
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Signing you in...</p>
           )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          {step === "phone" ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="08012345678"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={signedIn}
-                />
-              </div>
-              <Button
-                onClick={handleSendOtp}
-                disabled={loading || !phone.trim() || signedIn}
-                className="w-full"
-              >
-                {loading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Phone className="size-4" />
-                )}
-                Continue
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Button
-                variant="ghost"
-                onClick={() => setStep("phone")}
-                className="mb-2 -ml-2"
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={signedIn}
-              >
-                <ArrowLeft className="size-4" />
-                Change number
-              </Button>
-              <div className="space-y-2">
-                <Label htmlFor="otp">Verification Code</Label>
-                <p className="text-xs text-muted-foreground">
-                  Enter the code sent to {phone}
-                </p>
-                <Input
-                  id="otp"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="000000"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  disabled={signedIn}
-                />
-              </div>
-              <Button
-                onClick={handleVerifyOtp}
-                disabled={loading || otp.length < 6 || signedIn}
-                className="w-full"
-              >
-                {loading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ShieldCheck className="size-4" />
-                )}
-                Verify & Sign In
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                Didn&apos;t receive it?{" "}
-                <button
-                  onClick={handleResend}
-                  disabled={loading || cooldown > 0 || signedIn}
-                  className="font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
-                >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend"}
-                </button>
-              </p>
+                autoComplete="email"
+              />
             </div>
-          )}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={signedIn}
+                autoComplete="current-password"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={loading || !email.trim() || !password.trim() || signedIn}
+              className="w-full"
+            >
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <LockKeyhole className="size-4" />
+              )}
+              Sign In
+            </Button>
+          </form>
+
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or continue with</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            onClick={handleGoogleSignIn}
+            variant="outline"
+            disabled={googleLoading || signedIn}
+            className="w-full"
+          >
+            {googleLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+            )}
+            Sign in with Google
+          </Button>
         </div>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
-          By continuing, you agree to TrustPoint&apos;s terms of service.
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="font-medium text-brand-600 hover:text-brand-700">
+            Create one
+          </Link>
         </p>
       </div>
-
-      <div id="recaptcha-container" />
     </div>
   );
 }
