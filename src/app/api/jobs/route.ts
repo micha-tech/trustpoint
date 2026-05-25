@@ -4,7 +4,6 @@ import { getUserFromToken } from "@/lib/auth-server";
 import { generateJobRef, generateRef, generateClientAccessToken } from "@/lib/security/tokens";
 import { createVirtualAccount, createPaymentLink, recordPaymentReference } from "@/lib/paystack";
 
-// POST /api/jobs — create a new job
 export async function POST(req: NextRequest) {
   try {
     const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -13,46 +12,50 @@ export async function POST(req: NextRequest) {
     const user = await getUserFromToken(token);
     const body = await req.json();
 
-    const { title, description, amount, milestones } = body;
+    const { title, description, amount, milestones, expectedCompletionDate } = body;
 
-    if (!title || !amount || !milestones?.length) {
+    if (!title || !amount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const totalMilestoneAmount = milestones.reduce((s: number, m: any) => s + m.amount, 0);
-    if (totalMilestoneAmount !== amount) {
-      return NextResponse.json(
-        { error: "Milestone amounts must sum to job total" },
-        { status: 400 }
-      );
     }
 
     const ref = generateJobRef();
     const fee = Math.round(amount * 0.05);
     const payRef = generateRef("PAY");
 
+    const jobData: any = {
+      title,
+      description,
+      amount,
+      fee,
+      ref,
+      clientId: user.id,
+      artisanId: user.id,
+      expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
+    };
+
+    if (milestones?.length) {
+      const totalMilestoneAmount = milestones.reduce((s: number, m: any) => s + m.amount, 0);
+      if (totalMilestoneAmount !== amount) {
+        return NextResponse.json(
+          { error: "Milestone amounts must sum to job total" },
+          { status: 400 }
+        );
+      }
+      jobData.milestones = {
+        create: milestones.map((m: any, i: number) => ({
+          title: m.title,
+          description: m.description,
+          amount: m.amount,
+          sortOrder: i,
+        })),
+      };
+    }
+
     const job = await prisma.job.create({
-      data: {
-        title,
-        description,
-        amount,
-        fee,
-        ref,
-        clientId: user.id,
-        artisanId: user.id,
-        milestones: {
-          create: milestones.map((m: any, i: number) => ({
-            title: m.title,
-            description: m.description,
-            amount: m.amount,
-            sortOrder: i,
-          })),
-        },
-      },
+      data: jobData,
       include: { milestones: { orderBy: { sortOrder: "asc" } } },
     });
 
-    // Generate payment setup
     let virtualAccount = null;
     try {
       virtualAccount = await createVirtualAccount({
@@ -81,7 +84,6 @@ export async function POST(req: NextRequest) {
 
     const clientToken = generateClientAccessToken(job.id);
 
-    // Update job status to PENDING_PAYMENT
     await prisma.job.update({
       where: { id: job.id },
       data: { status: "PENDING_PAYMENT" },
@@ -104,7 +106,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/jobs — list jobs for authenticated user
 export async function GET(req: NextRequest) {
   try {
     const token = req.headers.get("authorization")?.replace("Bearer ", "");

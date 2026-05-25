@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -12,19 +12,27 @@ import {
   Copy,
   Check,
   Link2,
-  Wallet,
   Landmark,
-  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  Wallet,
   Loader2,
+  Shield,
+  MessageCircle,
 } from "lucide-react";
 
-type Milestone = {
-  id: string;
-  title: string;
-  description: string | null;
-  amount: number;
+type EscrowState = {
   status: string;
-  sortOrder: number;
+  totalAmount: number;
+  releasedAmount: number;
+  pendingAmount: number;
+};
+
+type Dispute = {
+  id: string;
+  reason: string;
+  status: string;
+  createdAt: string;
 };
 
 type Job = {
@@ -35,14 +43,27 @@ type Job = {
   amount: number;
   fee: number;
   status: string;
-  milestones: Milestone[];
-  escrow: { status: string; totalAmount: number; releasedAmount: number; pendingAmount: number } | null;
-  paymentReferences: { reference: string; status: string }[];
-  virtualAccount: { bankName: string; accountNumber: string; accountName: string } | null;
+  expectedCompletionDate: string | null;
+  completedAt: string | null;
+  approvedAt: string | null;
+  escrow: EscrowState | null;
   clientUrl: string;
+  virtualAccount: { bankName: string; accountNumber: string; accountName: string } | null;
+  paymentReferences: { reference: string; status: string }[];
+  disputes: Dispute[];
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Draft",
+  PENDING_PAYMENT: "Awaiting Payment",
+  ACTIVE: "Active",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed — awaiting your approval",
+  CANCELLED: "Cancelled",
+  DISPUTED: "Under Review",
+};
+
+const STATUS_STYLE: Record<string, string> = {
   DRAFT: "bg-muted text-muted-foreground",
   PENDING_PAYMENT: "bg-amber-50 text-amber-700",
   ACTIVE: "bg-blue-50 text-blue-700",
@@ -52,59 +73,64 @@ const STATUS_COLORS: Record<string, string> = {
   DISPUTED: "bg-orange-50 text-orange-700",
 };
 
-const MS_STYLES: Record<string, { dot: string; border: string; text: string }> = {
-  PENDING: { dot: "bg-muted-foreground/30", border: "border-border", text: "text-muted-foreground" },
-  IN_PROGRESS: { dot: "bg-brand-500", border: "border-brand-300 bg-brand-50/30", text: "text-brand-600" },
-  COMPLETED: { dot: "bg-amber-400", border: "border-amber-300 bg-amber-50/30", text: "text-amber-600" },
-  APPROVED: { dot: "bg-emerald-400", border: "border-emerald-300 bg-emerald-50/30", text: "text-emerald-600" },
-  RELEASED: { dot: "bg-emerald-500", border: "border-emerald-400 bg-emerald-50/50", text: "text-emerald-700" },
-  DISPUTED: { dot: "bg-orange-500", border: "border-orange-300 bg-orange-50/30", text: "text-orange-600" },
-};
-
 function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadJob = () => {
+  const loadJob = useCallback(() => {
     const token = localStorage.getItem("token");
     fetch(`/api/jobs/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then(setJob)
       .catch(() => setJob(null))
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
-  useEffect(() => { loadJob(); }, [id]);
-
-  const handleMilestoneComplete = async (milestoneId: string) => {
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch("/api/milestones", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ milestoneId, status: "COMPLETED" }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success("Milestone marked as complete");
-      loadJob();
-    } catch {
-      toast.error("Could not update milestone");
-    }
-  };
+  useEffect(() => {
+    loadJob();
+  }, [loadJob]);
 
   const copyLink = () => {
     if (job?.clientUrl) {
       navigator.clipboard.writeText(job.clientUrl);
       setCopied(true);
-      toast.success("Link copied to clipboard");
+      toast.success("Link copied");
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const shareWhatsApp = () => {
+    if (job?.clientUrl) {
+      const text = encodeURIComponent(
+        `Hi! Use this link to make a secure payment for "${job.title}": ${job.clientUrl}`
+      );
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    setCompleting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/jobs/${id}/complete`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed");
+      }
+      toast.success("Job marked as complete. Client notified.");
+      loadJob();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not update");
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -124,9 +150,10 @@ function JobDetail() {
     );
   }
 
-  const escrowProgress = job.escrow && job.escrow.totalAmount > 0
-    ? (job.escrow.releasedAmount / job.escrow.totalAmount) * 100
-    : 0;
+  const escrowProgress =
+    job.escrow && job.escrow.totalAmount > 0
+      ? (job.escrow.releasedAmount / job.escrow.totalAmount) * 100
+      : 0;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -147,76 +174,140 @@ function JobDetail() {
             <p className="mt-0.5 text-xs text-muted-foreground">{job.ref}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[job.status] ?? "bg-muted text-muted-foreground"}`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLE[job.status] ?? "bg-muted text-muted-foreground"}`}
           >
-            {job.status.replace("_", " ")}
+            {STATUS_LABEL[job.status] ?? job.status.replace("_", " ")}
           </span>
         </div>
         {job.description && (
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{job.description}</p>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            {job.description}
+          </p>
+        )}
+        {job.expectedCompletionDate && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="size-3" />
+            Expected by{" "}
+            {new Date(job.expectedCompletionDate).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
         )}
       </div>
 
+      {/* Workflow 3: Link generated — share with client */}
       {job.clientUrl && job.status === "PENDING_PAYMENT" && (
         <Card className="mb-5 border-brand-200 bg-brand-50 sm:mb-6">
           <CardContent className="p-4 sm:p-5">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-800">
-              <Link2 className="size-4" />
-              Share this link with your client
-            </h3>
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <CheckCircle2 className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-brand-900">
+                  Your protected payment link is ready
+                </h3>
+                <p className="text-xs text-brand-700">
+                  Share this link with your client to receive secure payment.
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 overflow-hidden rounded-lg border border-brand-200 bg-background pl-3 pr-1">
-              <span className="min-w-0 flex-1 truncate py-2 text-xs text-muted-foreground">{job.clientUrl}</span>
+              <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate py-2 text-xs text-muted-foreground">
+                {job.clientUrl}
+              </span>
               <Button onClick={copyLink} size="sm" className="shrink-0">
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
                 {copied ? "Copied!" : "Copy"}
               </Button>
             </div>
+
+            <Button
+              onClick={shareWhatsApp}
+              variant="outline"
+              className="mt-3 w-full"
+            >
+              <MessageCircle className="size-4 text-emerald-600" />
+              Share via WhatsApp
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      {(job.paymentReferences?.length > 0 || job.virtualAccount) && (
-        <div className="mb-6 space-y-3">
-          {job.virtualAccount && (
-            <Card>
-              <CardContent className="p-5">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Landmark className="size-4" />
-                  Bank Transfer Details
+      {/* Workflow 6: Payment verified — artisan can start */}
+      {(job.status === "ACTIVE" || job.status === "IN_PROGRESS") && (
+        <Card className="mb-5 border-emerald-200 bg-emerald-50 sm:mb-6">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <Shield className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-emerald-900">
+                  Payment verified
                 </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Bank</span>
-                    <span className="font-medium text-foreground">{job.virtualAccount.bankName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Account Number</span>
-                    <span className="font-mono font-bold text-foreground">{job.virtualAccount.accountNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Account Name</span>
-                    <span className="font-medium text-foreground">{job.virtualAccount.accountName}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {job.paymentReferences.map((pr) => (
-            <Card key={pr.reference}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Payment Reference</p>
-                  <p className="font-mono text-sm font-medium text-foreground">{pr.reference}</p>
-                </div>
-                <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">
-                  {pr.status}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <p className="text-xs text-emerald-700">
+                  You can now begin work on this job.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleMarkComplete}
+              disabled={completing}
+              className="mt-3 w-full"
+            >
+              {completing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
+              Mark Work as Completed
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
+      {/* Workflow 8: Release success */}
+      {job.status === "COMPLETED" && job.approvedAt && (
+        <Card className="mb-5 border-emerald-200 bg-emerald-50 sm:mb-6">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center gap-2">
+              <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <CheckCircle2 className="size-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-emerald-900">
+                  Your payout is on the way
+                </h3>
+                <p className="text-xs text-emerald-700">
+                  Client approved and payment has been released.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dispute state */}
+      {job.status === "DISPUTED" && (
+        <Card className="mb-5 border-orange-200 bg-orange-50 sm:mb-6">
+          <CardContent className="p-4 sm:p-5">
+            <h3 className="text-sm font-medium text-orange-900">
+              This job has been placed under review
+            </h3>
+            <p className="mt-1 text-xs text-orange-700">
+              TrustPoint will review the issue before payment is released.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Escrow */}
       {job.escrow && (
         <Card className="mb-6">
           <CardContent className="p-5">
@@ -224,27 +315,22 @@ function JobDetail() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <Wallet className="size-4" />
               </div>
-              <span className="text-sm font-medium text-foreground">Escrow</span>
+              <span className="text-sm font-medium text-foreground">Payment</span>
+              {job.escrow.status === "FUNDED" && (
+                <span className="ml-auto rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                  Secured
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-semibold text-foreground">
-                  ₦{(job.escrow.totalAmount / 100).toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Released</p>
-                <p className="font-semibold text-emerald-600">
-                  ₦{(job.escrow.releasedAmount / 100).toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="font-semibold text-brand-600">
-                  ₦{(job.escrow.pendingAmount / 100).toLocaleString()}
-                </p>
-              </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold text-foreground">
+                ₦{((job.amount + job.fee) / 100).toLocaleString()}
+              </span>
+              {job.escrow.releasedAmount > 0 && (
+                <span className="text-sm text-emerald-600">
+                  ₦{(job.escrow.releasedAmount / 100).toLocaleString()} released
+                </span>
+              )}
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
               <div
@@ -256,46 +342,37 @@ function JobDetail() {
         </Card>
       )}
 
-      <div className="mb-6">
-        <h2 className="mb-3 text-sm font-medium text-foreground">Milestones</h2>
-        <div className="space-y-2">
-          {job.milestones.map((ms) => {
-            const s = MS_STYLES[ms.status] ?? MS_STYLES.PENDING;
-            return (
-              <div key={ms.id} className={`rounded-xl border p-4 transition-all ${s.border}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className={`size-2 shrink-0 rounded-full ${s.dot}`} />
-                      <span className="text-sm font-medium text-foreground">{ms.title}</span>
-                    </div>
-                    {ms.description && (
-                      <p className="mt-1 text-xs text-muted-foreground ml-4">{ms.description}</p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-sm font-semibold text-foreground">
-                      ₦{(ms.amount / 100).toLocaleString()}
-                    </span>
-                    {ms.status === "IN_PROGRESS" && (
-                      <Button
-                        onClick={() => handleMilestoneComplete(ms.id)}
-                        size="sm"
-                      >
-                        <ArrowUpRight className="size-3.5" />
-                        Complete
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <span className={`mt-2 inline-block text-xs font-medium ${s.text}`}>
-                  {ms.status === "COMPLETED" ? "Awaiting client approval" : ms.status.replace("_", " ")}
+      {/* Bank details */}
+      {job.virtualAccount && (
+        <Card className="mb-6">
+          <CardContent className="p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+              <Landmark className="size-4" />
+              Payment Instructions
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Bank</span>
+                <span className="font-medium text-foreground">
+                  {job.virtualAccount.bankName}
                 </span>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Account Number</span>
+                <span className="font-mono font-bold text-foreground">
+                  {job.virtualAccount.accountNumber}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Account Name</span>
+                <span className="font-medium text-foreground">
+                  {job.virtualAccount.accountName}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

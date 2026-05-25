@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -13,18 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { calmError } from "@/lib/errors";
-import { ArrowLeft, Plus, Trash2, Loader2 } from "lucide-react";
-
-const milestoneSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  amount: z.string().min(1, "Amount is required"),
-});
+import { ArrowLeft, Calendar, Loader2, Lock } from "lucide-react";
 
 const jobSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Job title is required"),
+  amount: z.string().min(1, "Amount is required"),
   description: z.string().optional(),
-  milestones: z.array(milestoneSchema).min(1, "At least one milestone required"),
+  expectedCompletionDate: z.string().optional(),
 });
 
 type JobForm = z.infer<typeof jobSchema>;
@@ -33,21 +28,13 @@ function NewJobForm() {
   const router = useRouter();
   const {
     register,
-    control,
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<JobForm>({
-    resolver: zodResolver(jobSchema),
-    defaultValues: {
-      milestones: [{ title: "", description: "", amount: "" }],
-    },
-  });
-  const { fields, append, remove } = useFieldArray({ control, name: "milestones" });
+  } = useForm<JobForm>({ resolver: zodResolver(jobSchema) });
   const [loading, setLoading] = useState(false);
 
-  const milestones = watch("milestones");
-  const totalAmount = milestones.reduce((s, m) => s + (parseInt(m.amount) || 0), 0);
+  const amount = parseInt(watch("amount") || "0");
 
   const onSubmit = async (data: JobForm) => {
     setLoading(true);
@@ -61,13 +48,9 @@ function NewJobForm() {
         },
         body: JSON.stringify({
           title: data.title,
-          description: data.description,
-          amount: totalAmount * 100,
-          milestones: data.milestones.map((m) => ({
-            title: m.title,
-            description: m.description ?? "",
-            amount: parseInt(m.amount) * 100,
-          })),
+          description: data.description || "",
+          amount: amount * 100,
+          expectedCompletionDate: data.expectedCompletionDate || null,
         }),
       });
 
@@ -77,7 +60,7 @@ function NewJobForm() {
       }
 
       const job = await res.json();
-      toast.success("Job created successfully");
+      toast.success("Protected payment link generated");
       router.push(`/artisan/jobs/${job.id}`);
     } catch (err) {
       toast.error(calmError(err));
@@ -99,9 +82,9 @@ function NewJobForm() {
       </div>
 
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-foreground">Create Job</h1>
+        <h1 className="text-xl font-bold text-foreground">Create Protected Job</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Define the work and set milestones. Your client will pay into escrow before work starts.
+          Create a secure payment request for your client.
         </p>
       </div>
 
@@ -121,88 +104,46 @@ function NewJobForm() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  ₦
+                </span>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="50000"
+                  className="pl-7"
+                  {...register("amount")}
+                />
+              </div>
+              {errors.amount && (
+                <p className="text-sm text-destructive">{errors.amount.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <textarea
                 id="description"
                 rows={3}
-                placeholder="Describe the scope of work…"
+                placeholder="Describe the work clearly for your client."
                 className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 {...register("description")}
               />
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Label className="text-sm font-medium">Milestones</Label>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => append({ title: "", description: "", amount: "" })}
-                className="w-full sm:w-auto"
-              >
-                <Plus className="size-4" />
-                Add milestone
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {fields.map((field, i) => (
-                <div
-                  key={field.id}
-                  className="rounded-xl border border-border bg-muted/30 p-4"
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                      <span className="flex size-6 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
-                        {i + 1}
-                      </span>
-                      Milestone {i + 1}
-                    </span>
-                    {fields.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => remove(i)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="size-3.5" />
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    <Input
-                      placeholder="Milestone title"
-                      {...register(`milestones.${i}.title`)}
-                    />
-                    {errors.milestones?.[i]?.title && (
-                      <p className="text-xs text-destructive">{errors.milestones[i]?.title?.message}</p>
-                    )}
-                    <Input
-                      placeholder="Description (optional)"
-                      {...register(`milestones.${i}.description`)}
-                    />
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        ₦
-                      </span>
-                      <Input
-                        type="number"
-                        placeholder="Amount"
-                        className="pl-7"
-                        {...register(`milestones.${i}.amount`)}
-                      />
-                    </div>
-                    {errors.milestones?.[i]?.amount && (
-                      <p className="text-xs text-destructive">{errors.milestones[i]?.amount?.message}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <Label htmlFor="expectedCompletionDate">Expected Completion Date</Label>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="expectedCompletionDate"
+                  type="date"
+                  className="pl-9"
+                  {...register("expectedCompletionDate")}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -210,29 +151,33 @@ function NewJobForm() {
         <Card className="bg-gradient-to-br from-muted/50 to-background">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total job amount</span>
+              <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-lg font-bold text-foreground">
-                ₦{totalAmount.toLocaleString()}
+                ₦{amount.toLocaleString()}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Platform fee (5%)</span>
               <span className="text-muted-foreground">
-                ₦{Math.round(totalAmount * 0.05).toLocaleString()}
+                ₦{Math.round(amount * 0.05).toLocaleString()}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-sm font-medium">
+              <span className="text-foreground">Client pays</span>
+              <span className="text-foreground">
+                ₦{Math.round(amount * 1.05).toLocaleString()}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        <Button type="submit" disabled={loading} className="w-full">
+        <Button type="submit" disabled={loading || amount <= 0} className="w-full">
           {loading ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="size-4 animate-spin" />
-              Creating…
-            </span>
+            <Loader2 className="size-4 animate-spin" />
           ) : (
-            "Create Job"
+            <Lock className="size-4" />
           )}
+          Generate Protected Payment Link
         </Button>
       </form>
     </div>

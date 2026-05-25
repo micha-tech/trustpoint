@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth-server";
 import { generateClientAccessToken } from "@/lib/security/tokens";
 
-// GET /api/jobs/[id] — get job details
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,8 +19,9 @@ export async function GET(
       include: {
         milestones: { orderBy: { sortOrder: "asc" } },
         escrow: true,
-        client: { select: { name: true, email: true } },
-        artisan: { select: { name: true } },
+        client: { select: { name: true, email: true, phone: true } },
+        artisan: { select: { name: true, phone: true } },
+        disputes: { orderBy: { createdAt: "desc" }, take: 1 },
       },
     });
 
@@ -47,4 +47,3 @@ export async function GET(
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-
