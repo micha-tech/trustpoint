@@ -3,10 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { verifyClientAccessToken } from "@/lib/security/tokens";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const origin = req.headers.get("origin");
+    if (!origin) {
+      return NextResponse.json({ error: "Missing origin" }, { status: 403 });
+    }
+
     const { token } = await params;
     const { jobId } = verifyClientAccessToken(token);
 

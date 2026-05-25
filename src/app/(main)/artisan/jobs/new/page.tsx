@@ -57,12 +57,16 @@ function NewJobForm() {
         }),
       });
 
+      const job = await res.json();
+
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error ?? "Failed to create job");
+        throw new Error(job.error ?? "Failed to create job");
       }
 
-      const job = await res.json();
+      if (job.paymentError) {
+        toast.warning(job.paymentError);
+      }
+
       toast.success("Protected payment link generated");
       router.push(`/artisan/jobs/${job.id}`);
     } catch (err) {

@@ -26,16 +26,12 @@ export default function LoginPage() {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    if (signedIn && !authLoading && authUser) {
+    if (!authLoading && authUser && !signedIn) {
+      router.replace("/dashboard");
+    } else if (signedIn && !authLoading && authUser) {
       router.push("/dashboard");
     }
   }, [signedIn, authLoading, authUser, router]);
-
-  useEffect(() => {
-    if (!authLoading && authUser && !signedIn) {
-      router.replace("/dashboard");
-    }
-  }, [authLoading, authUser, router, signedIn]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +51,7 @@ export default function LoginPage() {
       const fbErr = err as { code?: string; message?: string };
       const code = fbErr?.code ?? "";
       const msg = fbErr?.message ?? "";
-      console.error("Email sign-in error:", { code, message: msg });
+      if (process.env.NODE_ENV !== "production") console.error("Email sign-in error:", { code, message: msg });
       if (code.includes("user-not-found") || msg.includes("user-not-found")) {
         toast.error("No account found with this email. Create one below.");
       } else if (code.includes("wrong-password") || code.includes("invalid-credential") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
@@ -88,7 +84,7 @@ export default function LoginPage() {
       const fbErr = err as { code?: string; message?: string };
       const code = fbErr?.code ?? "";
       const msg = fbErr?.message ?? "";
-      console.error("Google sign-in error:", { code, message: msg });
+      if (process.env.NODE_ENV !== "production") console.error("Google sign-in error:", { code, message: msg });
       if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
         // user just closed the popup — no toast needed
       } else if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {

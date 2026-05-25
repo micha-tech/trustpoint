@@ -7,16 +7,35 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const origin = req.headers.get("origin");
+    if (!origin) {
+      return NextResponse.json({ error: "Missing origin" }, { status: 403 });
+    }
+
     const { token } = await params;
     const { jobId } = verifyClientAccessToken(token);
 
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: { escrow: true },
+      include: { escrow: true, disputes: { where: { status: "OPEN" } } },
     });
 
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+
+    if (job.status === "DRAFT" || job.status === "CANCELLED" || job.status === "COMPLETED") {
+      return NextResponse.json(
+        { error: "Cannot dispute a job in its current state" },
+        { status: 400 }
+      );
+    }
+
+    if (job.disputes.length > 0) {
+      return NextResponse.json(
+        { error: "An active dispute already exists for this job" },
+        { status: 409 }
+      );
     }
 
     const body = await req.json();

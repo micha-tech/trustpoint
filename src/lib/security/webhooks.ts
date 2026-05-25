@@ -29,7 +29,11 @@ export function verifyPaystackSignature(
 // ──────────────────────────────────────────
 
 export function signLedgerEntry(data: string): string {
-  return createHmac("sha256", process.env.LEDGER_SECRET ?? "")
+  const secret = process.env.LEDGER_SECRET;
+  if (!secret) {
+    throw new Error("LEDGER_SECRET environment variable is not set");
+  }
+  return createHmac("sha256", secret)
     .update(data)
     .digest("hex");
 }

@@ -49,6 +49,7 @@ export default function ClientJobPage() {
   const [approving, setApproving] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
 
   const loadJob = () => {
     fetch(`/api/jobs/client/${token}`)
@@ -285,13 +286,50 @@ export default function ClientJobPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setData({ ...data, status: "DISPUTED" })}
+                onClick={() => setShowDisputeForm(true)}
                 className="text-destructive border-destructive/30 hover:bg-destructive/5"
               >
                 <AlertTriangle className="size-4" />
                 Report an Issue
               </Button>
             </div>
+
+            {showDisputeForm && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="dispute-reason">Briefly describe the issue</Label>
+                  <textarea
+                    id="dispute-reason"
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Briefly describe the issue."
+                    className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleDispute}
+                    disabled={submittingDispute || !disputeReason.trim()}
+                    className="flex-1"
+                  >
+                    {submittingDispute ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="size-4" />
+                    )}
+                    Submit Issue
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setShowDisputeForm(false); setDisputeReason(""); }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -340,6 +378,7 @@ export default function ClientJobPage() {
                   <textarea
                     id="dispute-reason"
                     rows={3}
+                    maxLength={500}
                     placeholder="Briefly describe the issue."
                     className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     value={disputeReason}

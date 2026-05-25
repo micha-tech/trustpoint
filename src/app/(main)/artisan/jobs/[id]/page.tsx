@@ -121,6 +121,7 @@ function JobDetail() {
 
   const handleMarkComplete = async () => {
     if (!user) return;
+    if (!window.confirm("Have you finished this job? This will notify your client.")) return;
     setCompleting(true);
     try {
       const token = await user.getIdToken();

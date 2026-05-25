@@ -27,16 +27,12 @@ export default function RegisterPage() {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    if (signedIn && !authLoading && authUser) {
+    if (!authLoading && authUser && !signedIn) {
+      router.replace("/dashboard");
+    } else if (signedIn && !authLoading && authUser) {
       router.push("/dashboard");
     }
   }, [signedIn, authLoading, authUser, router]);
-
-  useEffect(() => {
-    if (!authLoading && authUser && !signedIn) {
-      router.replace("/dashboard");
-    }
-  }, [authLoading, authUser, router, signedIn]);
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +60,7 @@ export default function RegisterPage() {
       const fbErr = err as { code?: string; message?: string };
       const code = fbErr?.code ?? "";
       const msg = fbErr?.message ?? "";
-      console.error("Email sign-up error:", { code, message: msg });
+      if (process.env.NODE_ENV !== "production") console.error("Email sign-up error:", { code, message: msg });
       if (code.includes("email-already-in-use") || msg.includes("email-already-in-use")) {
         toast.error("An account with this email already exists. Sign in instead.");
       } else if (code.includes("weak-password") || msg.includes("weak-password")) {
@@ -97,7 +93,7 @@ export default function RegisterPage() {
       const fbErr = err as { code?: string; message?: string };
       const code = fbErr?.code ?? "";
       const msg = fbErr?.message ?? "";
-      console.error("Google sign-up error:", { code, message: msg });
+      if (process.env.NODE_ENV !== "production") console.error("Google sign-up error:", { code, message: msg });
       if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
         // user closed popup — no toast
       } else if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {

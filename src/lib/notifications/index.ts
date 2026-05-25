@@ -37,7 +37,9 @@ export async function sendNotification(params: SendParams) {
     },
   });
 
-  console.log(`[${params.channel}] To ${params.userId}: ${params.body}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[${params.channel}] To ${params.userId}: ${params.body}`);
+  }
 
   await prisma.notification.update({
     where: { id: notif.id },

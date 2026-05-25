@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth-server";
-import { generateClientAccessToken } from "@/lib/security/tokens";
 
 export async function GET(
   req: NextRequest,
@@ -37,8 +36,9 @@ export async function GET(
       }),
     ]);
 
-    const clientToken = generateClientAccessToken(job.id);
-    const clientUrl = `${req.nextUrl.origin}/client/job/${clientToken}`;
+    const clientUrl = job.clientToken
+      ? `${req.nextUrl.origin}/client/job/${job.clientToken}`
+      : null;
 
     return NextResponse.json({ ...job, paymentReferences, virtualAccount, clientUrl });
   } catch (e) {
