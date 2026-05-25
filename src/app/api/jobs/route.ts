@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
+    console.error("POST /api/jobs error:", msg, e instanceof Error ? e.stack : "");
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
