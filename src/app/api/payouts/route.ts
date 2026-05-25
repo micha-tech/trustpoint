@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
 
     const payouts = await prisma.payoutRelease.findMany({
       where: { jobId },
+      select: { id: true, amount: true, status: true, failureReason: true, createdAt: true, completedAt: true },
       orderBy: { createdAt: "desc" },
     });
 

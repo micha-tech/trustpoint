@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth-server";
+import { writeLedgerEntry } from "@/lib/services/ledger";
 
 export async function POST(
   req: NextRequest,
@@ -42,14 +43,11 @@ export async function POST(
       data: { status: "COMPLETED", completedAt: new Date() },
     });
 
-    await prisma.ledgerEntry.create({
-      data: {
-        jobId: job.id,
-        event: "job.completed",
-        actorId: user.id,
-        reference: `COMPLETE-${job.ref}`,
-        signature: "artisan-complete",
-      },
+    await writeLedgerEntry({
+      jobId: job.id,
+      event: "job.completed",
+      actorId: user.id,
+      reference: `COMPLETE-${job.ref}`,
     });
 
     return NextResponse.json({ success: true });

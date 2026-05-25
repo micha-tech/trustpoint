@@ -24,10 +24,15 @@ export async function GET(req: NextRequest) {
       where: { jobId },
     });
 
-    const ledger = await prisma.ledgerEntry.findMany({
+    const rawLedger = await prisma.ledgerEntry.findMany({
       where: { jobId },
       orderBy: { createdAt: "asc" },
     });
+
+    const ledger = rawLedger.map(({ actorId, metadata, signature, ...rest }) => ({
+      ...rest,
+      metadata: metadata ?? {},
+    }));
 
     return NextResponse.json({ escrow, ledger });
   } catch {

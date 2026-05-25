@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyClientAccessToken } from "@/lib/security/tokens";
+import { writeLedgerEntry } from "@/lib/services/ledger";
 
 export async function POST(
   req: NextRequest,
@@ -8,8 +9,13 @@ export async function POST(
 ) {
   try {
     const origin = req.headers.get("origin");
-    if (!origin) {
-      return NextResponse.json({ error: "Missing origin" }, { status: 403 });
+    const allowedOrigins = [
+      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}` : null,
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+      "http://localhost:3000",
+    ].filter(Boolean) as string[];
+    if (!origin || !allowedOrigins.some((a) => origin.startsWith(a))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { token } = await params;
@@ -62,15 +68,12 @@ export async function POST(
     });
 
     // Record ledger entry
-    await prisma.ledgerEntry.create({
-      data: {
-        jobId: job.id,
-        event: "job.disputed",
-        actorId: job.clientId,
-        reference: `DISPUTE-${dispute.id.slice(0, 8)}`,
-        metadata: { reason: reason.trim() },
-        signature: "dispute-raised",
-      },
+    await writeLedgerEntry({
+      jobId: job.id,
+      event: "job.disputed",
+      actorId: job.clientId,
+      reference: `DISPUTE-${dispute.id.slice(0, 8)}`,
+      metadata: { reason: reason.trim() },
     });
 
     return NextResponse.json({ success: true, disputeId: dispute.id });
