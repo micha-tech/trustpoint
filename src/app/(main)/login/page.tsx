@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,14 @@ import { ArrowLeft, Loader2, Phone, ShieldCheck } from "lucide-react";
 
 type Step = "phone" | "otp";
 
+function formatPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("234") && digits.length === 13) return `+${digits}`;
+  if (digits.startsWith("0") && digits.length === 11) return `+234${digits.slice(1)}`;
+  if (digits.startsWith("234") && digits.length === 12) return `+234${digits}`;
+  return `+${digits}`;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("phone");
@@ -24,13 +32,22 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const confirmationRef = useRef<ConfirmationResult | null>(null);
-  const recaptchaRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      const win = window as unknown as { recaptchaVerifier?: RecaptchaVerifier };
+      if (win.recaptchaVerifier) {
+        try { win.recaptchaVerifier.clear(); } catch { /* ignore */ }
+        delete win.recaptchaVerifier;
+      }
+    };
+  }, []);
 
   const setupRecaptcha = () => {
     if (!auth || typeof window === "undefined") return null;
     const win = window as unknown as { recaptchaVerifier?: RecaptchaVerifier };
     if (win.recaptchaVerifier) {
-      win.recaptchaVerifier.clear();
+      try { win.recaptchaVerifier.clear(); } catch { /* ignore */ }
     }
     const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
       size: "invisible",
@@ -40,21 +57,36 @@ export default function LoginPage() {
   };
 
   const handleSendOtp = async () => {
-    if (!auth || !phone.trim()) return;
+    if (!auth) {
+      toast.error("Unable to verify right now. Please try again.");
+      return;
+    }
+    if (!phone.trim()) {
+      toast.error("Enter a valid phone number");
+      return;
+    }
     setLoading(true);
     try {
       const verifier = setupRecaptcha();
       if (!verifier) throw new Error("Could not set up verification");
-      const confirmation = await signInWithPhoneNumber(auth, phone, verifier);
+      const e164 = formatPhone(phone);
+      const confirmation = await signInWithPhoneNumber(auth, e164, verifier);
       confirmationRef.current = confirmation;
+      setOtp("");
       toast.success("Verification code sent");
       setStep("otp");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("invalid-phone")) {
-        toast.error("Enter a valid phone number");
-      } else if (msg.includes("too-many")) {
+      if (msg.includes("invalid-phone-number") || msg.includes("invalid-phone")) {
+        toast.error("Enter a valid phone number (e.g. 08012345678)");
+      } else if (msg.includes("too-many-requests") || msg.includes("too-many")) {
         toast.error("Too many attempts. Please wait and try again.");
+      } else if (msg.includes("operation-not-allowed")) {
+        toast.error("Phone sign-in is not enabled. Contact support.");
+      } else if (msg.includes("quota-exceeded")) {
+        toast.error("Service temporarily unavailable. Try again later.");
+      } else if (msg.includes("captcha-check-failed")) {
+        toast.error("Security check failed. Please refresh and try again.");
       } else {
         toast.error("Unable to verify right now. Please try again.");
       }
@@ -67,7 +99,9 @@ export default function LoginPage() {
     if (!confirmationRef.current || !otp.trim()) return;
     setLoading(true);
     try {
-      await confirmationRef.current.confirm(otp);
+      const result = await confirmationRef.current.confirm(otp);
+      const token = await result.user.getIdToken();
+      localStorage.setItem("token", token);
       toast.success("Signed in successfully");
       router.push("/dashboard");
     } catch {
@@ -77,6 +111,11 @@ export default function LoginPage() {
     }
   };
 
+  const handleResend = () => {
+    setOtp("");
+    handleSendOtp();
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="pointer-events-none fixed inset-0 -z-10">
@@ -84,7 +123,7 @@ export default function LoginPage() {
         <div className="absolute -bottom-32 -right-32 size-96 rounded-full bg-brand-500/8 blur-3xl" />
       </div>
 
-      <div id="recaptcha-container" ref={recaptchaRef} />
+      <div id="recaptcha-container" />
 
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
@@ -165,8 +204,9 @@ export default function LoginPage() {
               <p className="text-center text-xs text-muted-foreground">
                 Didn&apos;t receive it?{" "}
                 <button
-                  onClick={handleSendOtp}
-                  className="font-medium text-brand-600 hover:text-brand-700"
+                  onClick={handleResend}
+                  disabled={loading}
+                  className="font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50"
                 >
                   Resend
                 </button>

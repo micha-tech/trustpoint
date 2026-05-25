@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
       include: { milestones: { orderBy: { sortOrder: "asc" } } },
     });
 
+    // Generate client token BEFORE creating payment link (need real URL)
+    const clientToken = generateClientAccessToken(job.id);
+    const clientUrl = `${req.nextUrl.origin}/client/job/${clientToken}`;
+
     let virtualAccount = null;
     try {
       virtualAccount = await createVirtualAccount({
@@ -68,12 +72,11 @@ export async function POST(req: NextRequest) {
       // DVA may fail; payment link is the fallback
     }
 
-    const callbackUrl = `${req.nextUrl.origin}/client/job/PLACEHOLDER`;
     const paymentLink = await createPaymentLink({
       amount: amount + fee,
       email: user.email ?? "",
       reference: payRef,
-      callbackUrl,
+      callbackUrl: clientUrl,
     });
 
     await recordPaymentReference({
@@ -82,14 +85,10 @@ export async function POST(req: NextRequest) {
       amount: amount + fee,
     });
 
-    const clientToken = generateClientAccessToken(job.id);
-
     await prisma.job.update({
       where: { id: job.id },
       data: { status: "PENDING_PAYMENT" },
     });
-
-    const clientUrl = `${req.nextUrl.origin}/client/job/${clientToken}`;
 
     return NextResponse.json({
       ...job,

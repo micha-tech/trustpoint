@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Briefcase, Loader2 } from "lucide-react";
 
+type Milestone = { id: string; status: string };
+
 type Job = {
   id: string;
   title: string;
   ref: string;
   status: string;
   amount: number;
-  milestones: { id: string; status: string }[];
+  milestones: Milestone[];
   escrow: { status: string; totalAmount: number; releasedAmount: number } | null;
 };
 
@@ -120,9 +122,12 @@ function ArtisanDashboard() {
                         {completed}/{total} milestone{total !== 1 ? "s" : ""} paid
                       </span>
                     )}
+                    {(job.status === "PENDING_PAYMENT" || job.status === "ACTIVE" || job.status === "IN_PROGRESS") && total === 0 && (
+                      <span className="text-muted-foreground">Awaiting payment</span>
+                    )}
                   </div>
 
-                  {job.escrow && total > 0 && (
+                  {job.escrow && total > 0 && job.escrow.totalAmount > 0 && (
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full bg-brand-500 transition-all duration-500"

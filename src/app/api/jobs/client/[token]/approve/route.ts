@@ -37,7 +37,7 @@ export async function POST(
     }
 
     // Release job amount to artisan (fee stays as platform revenue)
-    const releaseAmount = job.amount;
+    const releaseAmount = Math.min(job.amount, job.escrow.pendingAmount);
 
     await prisma.escrowState.update({
       where: { jobId: job.id },
