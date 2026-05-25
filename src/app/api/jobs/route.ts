@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
       jobId: job.id,
       reference: payRef,
       amount: amount + fee,
+      metadata: { authorizationUrl: paymentLink.authorizationUrl },
     });
 
     await prisma.job.update({
