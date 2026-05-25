@@ -24,11 +24,13 @@ const cards = [
 function DashboardContent() {
   const { user } = useAuth();
 
+  const displayName = user?.phoneNumber ?? user?.email?.split("@")[0] ?? "there";
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-foreground">
-          Hello, {user?.email?.split("@")[0] ?? "there"}
+          Hello, {displayName}
         </h1>
         <p className="mt-0.5 text-sm text-muted-foreground">Welcome to TrustPoint</p>
       </div>

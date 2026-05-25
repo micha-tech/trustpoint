@@ -33,12 +33,20 @@ function ArtisanDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/jobs", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })
-      .then((r) => r.ok ? r.json() : [])
-      .then(setJobs)
-      .catch(() => setJobs([]))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!user) return;
+    const fetchJobs = async () => {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch("/api/jobs", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) setJobs(await res.json());
+      } catch {
+        setJobs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, [user]);
 
   if (loading) {
     return (
@@ -53,7 +61,7 @@ function ArtisanDashboard() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">
-            Hello, {user?.email?.split("@")[0] ?? "artisan"}
+            Hello, {user?.phoneNumber ?? user?.email?.split("@")[0] ?? "artisan"}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {jobs.length} job{jobs.length !== 1 ? "s" : ""}

@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ type JobForm = z.infer<typeof jobSchema>;
 
 function NewJobForm() {
   const router = useRouter();
+  const { user } = useAuth();
   const {
     register,
     handleSubmit,
@@ -37,9 +39,10 @@ function NewJobForm() {
   const amount = parseInt(watch("amount") || "0");
 
   const onSubmit = async (data: JobForm) => {
+    if (!user) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = await user.getIdToken();
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: {

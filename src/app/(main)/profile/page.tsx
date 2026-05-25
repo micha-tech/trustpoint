@@ -8,12 +8,13 @@ function ProfileContent() {
   const { user } = useAuth();
 
   const details = [
+    { label: "Phone", value: user?.phoneNumber ?? "—" },
     { label: "Email", value: user?.email ?? "—" },
     { label: "Email Verified", value: user?.emailVerified ? "Yes" : "No" },
     { label: "Member Since", value: user?.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "—" },
   ];
 
-  const initial = user?.email?.charAt(0).toUpperCase() ?? "?";
+  const initial = (user?.phoneNumber ?? user?.email ?? "?").charAt(0).toUpperCase();
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">

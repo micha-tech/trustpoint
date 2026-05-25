@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -75,21 +76,26 @@ const STATUS_STYLE: Record<string, string> = {
 
 function JobDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadJob = useCallback(() => {
-    const token = localStorage.getItem("token");
-    fetch(`/api/jobs/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setJob)
-      .catch(() => setJob(null))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const loadJob = useCallback(async () => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/jobs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setJob(res.ok ? await res.json() : null);
+    } catch {
+      setJob(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user]);
 
   useEffect(() => {
     loadJob();
@@ -114,9 +120,10 @@ function JobDetail() {
   };
 
   const handleMarkComplete = async () => {
+    if (!user) return;
     setCompleting(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = await user.getIdToken();
       const res = await fetch(`/api/jobs/${id}/complete`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
