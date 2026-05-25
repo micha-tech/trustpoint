@@ -54,25 +54,35 @@ type Job = {
   disputes: Dispute[];
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Draft",
-  PENDING_PAYMENT: "Awaiting Payment",
-  ACTIVE: "Active",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed — awaiting your approval",
-  CANCELLED: "Cancelled",
-  DISPUTED: "Under Review",
-};
+function getStatusLabel(job: Job): string {
+  if (job.status === "COMPLETED") {
+    return job.approvedAt ? "Released" : "Awaiting client approval";
+  }
+  const labels: Record<string, string> = {
+    DRAFT: "Draft",
+    PENDING_PAYMENT: "Awaiting Payment",
+    ACTIVE: "Active",
+    IN_PROGRESS: "In Progress",
+    CANCELLED: "Cancelled",
+    DISPUTED: "Under Review",
+  };
+  return labels[job.status] ?? job.status.replace("_", " ");
+}
 
-const STATUS_STYLE: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  PENDING_PAYMENT: "bg-amber-50 text-amber-700",
-  ACTIVE: "bg-blue-50 text-blue-700",
-  IN_PROGRESS: "bg-indigo-50 text-indigo-700",
-  COMPLETED: "bg-emerald-50 text-emerald-700",
-  CANCELLED: "bg-red-50 text-red-700",
-  DISPUTED: "bg-orange-50 text-orange-700",
-};
+function getStatusStyle(job: Job): string {
+  if (job.status === "COMPLETED") {
+    return job.approvedAt ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700";
+  }
+  const styles: Record<string, string> = {
+    DRAFT: "bg-muted text-muted-foreground",
+    PENDING_PAYMENT: "bg-amber-50 text-amber-700",
+    ACTIVE: "bg-blue-50 text-blue-700",
+    IN_PROGRESS: "bg-indigo-50 text-indigo-700",
+    CANCELLED: "bg-red-50 text-red-700",
+    DISPUTED: "bg-orange-50 text-orange-700",
+  };
+  return styles[job.status] ?? "bg-muted text-muted-foreground";
+}
 
 function JobDetail() {
   const { id } = useParams<{ id: string }>();
@@ -182,9 +192,9 @@ function JobDetail() {
             <p className="mt-0.5 text-xs text-muted-foreground">{job.ref}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLE[job.status] ?? "bg-muted text-muted-foreground"}`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${getStatusStyle(job)}`}
           >
-            {STATUS_LABEL[job.status] ?? job.status.replace("_", " ")}
+            {getStatusLabel(job)}
           </span>
         </div>
         {job.description && (
