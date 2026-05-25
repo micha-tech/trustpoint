@@ -9,12 +9,13 @@ export async function POST(
 ) {
   try {
     const origin = req.headers.get("origin");
+    const host = req.headers.get("host") ?? req.nextUrl.host;
     const allowedOrigins = [
-      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}` : null,
-      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+      host ? `https://${host}` : null,
+      host ? `http://${host}` : null,
       "http://localhost:3000",
     ].filter(Boolean) as string[];
-    if (!origin || !allowedOrigins.some((a) => origin.startsWith(a))) {
+    if (!origin || !allowedOrigins.some((a) => origin === a)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
