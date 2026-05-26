@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyClientAccessToken } from "@/lib/security/tokens";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 import { validateOrigin } from "@/lib/middleware/origin";
+import { initiateTransfer } from "@/lib/paystack";
+import { generateRef } from "@/lib/security/tokens";
 
 export async function POST(
   req: NextRequest,
@@ -41,6 +43,14 @@ export async function POST(
       );
     }
 
+    const artisanProfile = job.artisan?.artisanProfile;
+    if (!artisanProfile?.recipientCode) {
+      return NextResponse.json(
+        { error: "The artisan has not set up their payout details yet. Ask them to update their profile." },
+        { status: 400 }
+      );
+    }
+
     const releaseAmount = Math.min(job.amount, job.escrow.pendingAmount);
 
     await prisma.$transaction(async (tx) => {
@@ -65,6 +75,47 @@ export async function POST(
       amount: releaseAmount,
       reference: `APPROVE-${job.ref}`,
     });
+
+    const payoutRef = generateRef("PO");
+
+    await prisma.payoutRelease.create({
+      data: {
+        jobId: job.id,
+        amount: releaseAmount,
+        status: "PENDING",
+        recipientCode: artisanProfile.recipientCode,
+        reference: payoutRef,
+      },
+    });
+
+    try {
+      const transfer = await initiateTransfer({
+        amount: releaseAmount,
+        recipientCode: artisanProfile.recipientCode,
+        reference: payoutRef,
+        reason: `Payout for ${job.title}`,
+      });
+      await prisma.payoutRelease.update({
+        where: { reference: payoutRef },
+        data: {
+          status: transfer.status === "success" ? "COMPLETED" : "PROCESSING",
+          transferCode: transfer.transferCode,
+          completedAt: transfer.status === "success" ? new Date() : null,
+        },
+      });
+    } catch {
+      await prisma.payoutRelease.update({
+        where: { reference: payoutRef },
+        data: { status: "FAILED", failureReason: "Transfer initiation failed" },
+      });
+      await writeLedgerEntry({
+        jobId: job.id,
+        event: "payout.failed",
+        amount: releaseAmount,
+        reference: payoutRef,
+        metadata: { reason: "Transfer initiation failed" },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (e) {

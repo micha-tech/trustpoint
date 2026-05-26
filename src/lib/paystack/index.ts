@@ -94,6 +94,33 @@ export async function createTransferRecipient(params: {
   return { recipientCode: data.recipient_code };
 }
 
+export async function listBanks() {
+  return paystackFetch("/bank?currency=NGN");
+}
+
+export async function resolveBankAccount(accountNumber: string, bankCode: string) {
+  return paystackFetch(`/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`);
+}
+
+export async function initiateTransfer(params: {
+  amount: number;
+  recipientCode: string;
+  reference: string;
+  reason?: string;
+}) {
+  const data = await paystackFetch("/transfer", {
+    method: "POST",
+    body: JSON.stringify({
+      source: "balance",
+      amount: params.amount,
+      recipient: params.recipientCode,
+      reference: params.reference,
+      reason: params.reason ?? "TrustPoint payout",
+    }),
+  });
+  return { transferCode: data.transfer_code, status: data.status };
+}
+
 export async function recordPaymentReference(params: {
   jobId: string;
   reference: string;
