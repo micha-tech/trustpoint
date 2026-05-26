@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const user = await getUserFromToken(token);
     const body = await req.json();
 
-    const { title, description, amount, expectedCompletionDate } = body;
+    const { title, description, amount, clientEmail, expectedCompletionDate } = body;
 
     if (!title || !amount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
         ref,
         clientId: user.id,
         artisanId: user.id,
+        clientEmail: clientEmail?.trim().toLowerCase(),
         clientToken,
         expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
       },

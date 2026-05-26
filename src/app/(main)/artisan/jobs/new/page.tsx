@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import { ArrowLeft, Calendar, Loader2, Lock } from "lucide-react";
 const jobSchema = z.object({
   title: z.string().min(1, "Job title is required"),
   amount: z.string().min(1, "Amount is required"),
+  clientEmail: z.string().email("Enter a valid email address"),
   description: z.string().optional(),
   expectedCompletionDate: z.string().optional(),
 });
@@ -36,7 +37,8 @@ function NewJobForm() {
   } = useForm<JobForm>({ resolver: zodResolver(jobSchema) });
   const [loading, setLoading] = useState(false);
 
-  const amount = parseInt(watch("amount") || "0");
+  const amountStr = watch("amount");
+  const amount = useMemo(() => parseFloat(amountStr || "0"), [amountStr]);
 
   const onSubmit = async (data: JobForm) => {
     if (!user) return;
@@ -53,6 +55,7 @@ function NewJobForm() {
           title: data.title,
           description: data.description || "",
           amount: amount * 100,
+          clientEmail: data.clientEmail,
           expectedCompletionDate: data.expectedCompletionDate || null,
         }),
       });
@@ -89,9 +92,9 @@ function NewJobForm() {
       </div>
 
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-foreground">Create Protected Job</h1>
+        <h1 className="text-xl font-bold text-foreground">New Project</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Create a secure payment request for your client.
+          Set up a secure payment request for your client.
         </p>
       </div>
 
@@ -126,6 +129,19 @@ function NewJobForm() {
               </div>
               {errors.amount && (
                 <p className="text-sm text-destructive">{errors.amount.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="clientEmail">Client Email</Label>
+              <Input
+                id="clientEmail"
+                type="email"
+                placeholder="client@example.com"
+                {...register("clientEmail")}
+              />
+              {errors.clientEmail && (
+                <p className="text-sm text-destructive">{errors.clientEmail.message}</p>
               )}
             </div>
 
@@ -184,7 +200,7 @@ function NewJobForm() {
           ) : (
             <Lock className="size-4" />
           )}
-          Generate Protected Payment Link
+          Generate payment link
         </Button>
       </form>
     </div>

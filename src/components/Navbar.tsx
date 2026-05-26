@@ -7,11 +7,12 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { Menu, X, LogOut } from "lucide-react";
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/artisan/dashboard", label: "Artisan" },
+  { href: "/dashboard", label: "Overview" },
+  { href: "/artisan/dashboard", label: "Your Jobs" },
   { href: "/profile", label: "Profile" },
 ];
 
@@ -36,7 +37,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-border bg-background/75 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <img src="/logo.png" alt="TrustPoint" className="h-8 w-auto" />
+          <Image src="/logo.png" alt="TrustPoint" width={64} height={32} className="h-8 w-auto" priority />
         </Link>
 
         <Button

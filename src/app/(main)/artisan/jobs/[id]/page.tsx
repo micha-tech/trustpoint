@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -22,6 +22,7 @@ import {
   MessageCircle,
   RefreshCcw,
   AlertTriangle,
+  Mail,
   X,
 } from "lucide-react";
 import { getStatusLabel, getStatusStyle } from "@/lib/job-status";
@@ -48,6 +49,7 @@ type Job = {
   amount: number;
   fee: number;
   status: string;
+  clientEmail: string | null;
   expectedCompletionDate: string | null;
   completedAt: string | null;
   approvedAt: string | null;
@@ -93,12 +95,44 @@ function JobDetail() {
 
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
   useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
     const shouldPoll = job && job.status === "COMPLETED" && !job.approvedAt;
     if (shouldPoll) {
       pollRef.current = setInterval(loadJob, 5000);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [job?.status, job?.approvedAt, loadJob]);
+
+  const formattedCompletionDate = useMemo(
+    () => job?.expectedCompletionDate
+      ? new Date(job.expectedCompletionDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+      : null,
+    [job?.expectedCompletionDate]
+  );
+  const formattedTotal = useMemo(
+    () => job ? `₦${((job.amount + job.fee) / 100).toLocaleString()}` : "",
+    [job?.amount, job?.fee]
+  );
+  const formattedAmount = useMemo(
+    () => job ? `₦${(job.amount / 100).toLocaleString()}` : "",
+    [job?.amount]
+  );
+  const formattedFee = useMemo(
+    () => job ? `₦${(job.fee / 100).toLocaleString()}` : "",
+    [job?.fee]
+  );
+  const progressPercent = useMemo(
+    () => job?.escrow && job.escrow.totalAmount > 0
+      ? (job.escrow.releasedAmount / job.escrow.totalAmount) * 100
+      : 0,
+    [job?.escrow?.releasedAmount, job?.escrow?.totalAmount]
+  );
+  const releasedAmount = useMemo(
+    () => job?.escrow && job.escrow.releasedAmount > 0
+      ? `₦${(job.escrow.releasedAmount / 100).toLocaleString()} released`
+      : null,
+    [job?.escrow?.releasedAmount]
+  );
 
   const copyLink = async () => {
     if (!job?.clientUrl) return;
@@ -135,7 +169,7 @@ function JobDetail() {
         const err = await res.json();
         throw new Error(err.error ?? "Failed");
       }
-      toast.success("Job marked as complete. Client notified.");
+      toast.success("                  Work submitted. Your client has been notified.");
       loadJob();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Could not update");
@@ -171,7 +205,7 @@ function JobDetail() {
         <Link href="/artisan/dashboard">
           <Button variant="outline">
             <ArrowLeft className="size-4" />
-            Back to Dashboard
+            Back to Your Jobs
           </Button>
         </Link>
       </div>
@@ -186,7 +220,7 @@ function JobDetail() {
           className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          Dashboard
+          Your Jobs
         </Link>
       </div>
 
@@ -207,22 +241,24 @@ function JobDetail() {
             {job.description}
           </p>
         )}
+        {job.clientEmail && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Mail className="size-3" />
+            Client email: {job.clientEmail}
+          </p>
+        )}
         {job.expectedCompletionDate && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="size-3" />
             Expected by{" "}
-            {new Date(job.expectedCompletionDate).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+            {formattedCompletionDate}
           </p>
         )}
         {/* Polling indicator */}
         {pollRef.current && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
             <Loader2 className="size-3 animate-spin" />
-            Checking for updates...
+              Checking for updates
           </div>
         )}
       </div>
@@ -237,10 +273,10 @@ function JobDetail() {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-brand-900">
-                  Your protected payment link is ready
+                  Payment link ready
                 </h3>
                 <p className="text-xs text-brand-700">
-                  Share this link with your client to receive secure payment.
+                  Share this link with your client to receive payment.
                 </p>
               </div>
             </div>
@@ -274,17 +310,17 @@ function JobDetail() {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-emerald-900">
-                  Payment verified
+                  Payment secured
                 </h3>
                 <p className="text-xs text-emerald-700">
-                  You can now begin work on this job.
+                  You can now begin work.
                 </p>
               </div>
             </div>
 
             <Button onClick={() => setShowConfirm(true)} className="mt-3 w-full">
               <CheckCircle2 className="size-4" />
-              Mark Work as Completed
+              Work is done
             </Button>
           </CardContent>
         </Card>
@@ -307,7 +343,7 @@ function JobDetail() {
                 </button>
               </div>
               <p className="mb-5 text-sm text-muted-foreground">
-                Have you finished this job? This will notify your client and they can approve the payment release.
+                Have you finished the work? This lets your client know and they can release the payment.
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
@@ -333,10 +369,10 @@ function JobDetail() {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-emerald-900">
-                  Your payout is on the way
+                  Payment released
                 </h3>
                 <p className="text-xs text-emerald-700">
-                  Client approved and payment has been released.
+                  All settled. Well done.
                 </p>
               </div>
             </div>
@@ -349,7 +385,7 @@ function JobDetail() {
         <Card className="mb-5 border-orange-200 bg-orange-50 sm:mb-6">
           <CardContent className="p-4 sm:p-5">
             <h3 className="text-sm font-medium text-orange-900">
-              This job has been placed under review
+              This project has been placed under review
             </h3>
             <p className="mt-1 text-xs text-orange-700">
               TrustPoint will review the issue before payment is released.
@@ -375,11 +411,11 @@ function JobDetail() {
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold text-foreground">
-                ₦{((job.amount + job.fee) / 100).toLocaleString()}
+                {formattedTotal}
               </span>
               {job.escrow.releasedAmount > 0 && (
                 <span className="text-sm text-emerald-600">
-                  ₦{(job.escrow.releasedAmount / 100).toLocaleString()} released
+                  {releasedAmount}
                 </span>
               )}
             </div>
@@ -387,17 +423,17 @@ function JobDetail() {
             <div className="mt-2 space-y-1 text-xs text-muted-foreground">
               <div className="flex justify-between">
                 <span>Job amount</span>
-                <span>₦{(job.amount / 100).toLocaleString()}</span>
+                <span>{formattedAmount}</span>
               </div>
               <div className="flex justify-between">
                 <span>Platform fee (5%)</span>
-                <span>₦{(job.fee / 100).toLocaleString()}</span>
+                <span>{formattedFee}</span>
               </div>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-brand-500 transition-all duration-500"
-                style={{ width: `${job.escrow.totalAmount > 0 ? (job.escrow.releasedAmount / job.escrow.totalAmount) * 100 : 0}%` }}
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
           </CardContent>

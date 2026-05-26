@@ -9,8 +9,8 @@ import { Briefcase, User, Users } from "lucide-react";
 const cards = [
   {
     href: "/artisan/dashboard",
-    title: "Artisan Dashboard",
-    desc: "Manage jobs and receive payments",
+    title: "Your Jobs",
+    desc: "Manage projects and receive payments",
     icon: Briefcase,
   },
   {
@@ -55,9 +55,9 @@ function DashboardContent() {
             <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
               <Users className="size-5" />
             </div>
-            <h2 className="text-sm font-semibold text-muted-foreground">Client View</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground">Review & Pay</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Opens when an artisan shares a job link with you
+              Opens when a project link is shared with you
             </p>
           </CardContent>
         </Card>

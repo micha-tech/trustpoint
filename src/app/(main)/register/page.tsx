@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 import { Loader2, LockKeyhole, Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
@@ -140,7 +141,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-            <img src="/logo.png" alt="TrustPoint" className="mx-auto h-10 w-auto" />
+            <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="mx-auto h-10 w-auto" priority />
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Create your account</h1>
           <p className="mt-1 text-sm text-muted-foreground">Start protecting your payments</p>

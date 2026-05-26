@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, CheckCircle, Lock, Shield, Users } from "lucide-react";
 
 const steps = [
   {
     icon: Users,
-    title: "Create a Job",
+    title: "Create a Project",
     desc: "Define the work and agree on a price with your client.",
   },
   {
@@ -15,7 +16,7 @@ const steps = [
   {
     icon: CheckCircle,
     title: "Release on Approval",
-    desc: "Complete the job. Client approves. Funds released instantly.",
+    desc: "Complete the work. Client approves. Funds released instantly.",
   },
 ];
 
@@ -47,7 +48,7 @@ export default function Home() {
         </div>
 
         <div className="mx-auto max-w-2xl text-center">
-          <img src="/logo.png" alt="TrustPoint" className="mx-auto mb-6 h-16 w-auto drop-shadow-lg" />
+          <Image src="/logo.png" alt="TrustPoint" width={128} height={64} className="mx-auto mb-6 h-16 w-auto drop-shadow-lg" priority />
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold tracking-wide text-brand-700">
             <span className="size-1.5 rounded-full bg-brand-500" />
             Payment Protection for Artisans
@@ -138,7 +139,7 @@ export default function Home() {
             href="/register"
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition-all hover:bg-brand-600 hover:shadow-xl active:scale-[0.98] sm:w-auto"
           >
-            Start Protecting Your Payments
+            Start protecting your payments
             <ArrowRight className="size-4" />
           </Link>
         </div>
@@ -146,7 +147,7 @@ export default function Home() {
 
       <footer className="border-t border-border bg-background px-4 py-6">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 text-center sm:flex-row">
-          <img src="/logo.png" alt="TrustPoint" className="h-6 w-auto opacity-60" />
+          <Image src="/logo.png" alt="TrustPoint" width={48} height={24} className="h-6 w-auto opacity-60" />
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} TrustPoint. All rights reserved.
           </p>

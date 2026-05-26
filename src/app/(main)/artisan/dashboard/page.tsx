@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Link from "next/link";
@@ -98,7 +98,7 @@ function ArtisanDashboard() {
     );
   }
 
-  const groups = groupJobs(jobs);
+  const groups = useMemo(() => groupJobs(jobs), [jobs]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -108,13 +108,13 @@ function ArtisanDashboard() {
             {displayName ? `Hello, ${displayName}` : "Hello"}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {jobs.length} job{jobs.length !== 1 ? "s" : ""}
+            {jobs.length} project{jobs.length !== 1 ? "s" : ""}
           </p>
         </div>
         <Link href="/artisan/jobs/new" className="w-full sm:w-auto">
           <Button className="w-full sm:w-auto">
             <Plus className="size-4" />
-            New Job
+            New Project
           </Button>
         </Link>
       </div>
@@ -126,12 +126,12 @@ function ArtisanDashboard() {
               <Briefcase className="size-6" />
             </div>
             <p className="text-sm text-muted-foreground">
-              No jobs yet. Create your first job to get started.
+              No projects yet. Start by creating your first one.
             </p>
             <Link href="/artisan/jobs/new">
               <Button>
                 <Plus className="size-4" />
-                New Job
+                New Project
               </Button>
             </Link>
           </CardContent>
@@ -171,7 +171,7 @@ function ArtisanDashboard() {
                             ₦{(job.amount / 100).toLocaleString()}
                           </span>
                           <span className="text-muted-foreground">
-                            {job.escrow?.status === "FUNDED" ? "Payment secured" : job.escrow?.status === "RELEASED" ? "Paid out" : "Awaiting payment"}
+                            {job.escrow?.status === "FUNDED" ? "Secured" : job.escrow?.status === "RELEASED" ? "Paid out" : "Awaiting payment"}
                           </span>
                         </div>
 

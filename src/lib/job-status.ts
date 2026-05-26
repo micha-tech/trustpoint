@@ -1,14 +1,14 @@
 export function getStatusLabel(status: string, approvedAt?: string | null): string {
   if (status === "COMPLETED") {
-    return approvedAt ? "Released" : "Awaiting client approval";
+    return approvedAt ? "All settled" : "Work submitted";
   }
   const labels: Record<string, string> = {
     DRAFT: "Draft",
-    PENDING_PAYMENT: "Awaiting Payment",
-    ACTIVE: "Active",
-    IN_PROGRESS: "In Progress",
+    PENDING_PAYMENT: "Awaiting payment",
+    ACTIVE: "Payment secured",
+    IN_PROGRESS: "In progress",
     CANCELLED: "Cancelled",
-    DISPUTED: "Under Review",
+    DISPUTED: "Needs review",
   };
   return labels[status] ?? status.replace("_", " ");
 }

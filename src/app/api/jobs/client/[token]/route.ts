@@ -12,9 +12,21 @@ export async function GET(
 
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: {
-        escrow: true,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        amount: true,
+        fee: true,
+        ref: true,
+        status: true,
+        clientEmail: true,
+        expectedCompletionDate: true,
+        completedAt: true,
+        approvedAt: true,
+        createdAt: true,
         artisan: { select: { name: true, phone: true } },
+        escrow: true,
       },
     });
 
@@ -31,6 +43,7 @@ export async function GET(
       fee: job.fee,
       ref: job.ref,
       status: job.status,
+      clientEmailSet: !!job.clientEmail,
       expectedCompletionDate: j.expectedCompletionDate ?? null,
       completedAt: j.completedAt ?? null,
       approvedAt: j.approvedAt ?? null,
@@ -38,8 +51,7 @@ export async function GET(
       escrow: job.escrow,
       createdAt: job.createdAt,
     });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Invalid or expired link";
-    return NextResponse.json({ error: msg }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "Invalid or expired link" }, { status: 400 });
   }
 }
