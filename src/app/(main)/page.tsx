@@ -47,7 +47,7 @@ export default function Home() {
         </div>
 
         <div className="mx-auto max-w-2xl text-center">
-          <img src="/logo.png" alt="TrustPoint" className="mx-auto mb-6 h-10 w-auto" />
+          <img src="/logo.png" alt="TrustPoint" className="mx-auto mb-6 h-16 w-auto drop-shadow-lg" />
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold tracking-wide text-brand-700">
             <span className="size-1.5 rounded-full bg-brand-500" />
             Payment Protection for Artisans

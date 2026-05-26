@@ -2,22 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyClientAccessToken } from "@/lib/security/tokens";
 import { writeLedgerEntry } from "@/lib/services/ledger";
+import { validateOrigin } from "@/lib/middleware/origin";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const origin = req.headers.get("origin");
-    const host = req.headers.get("host") ?? req.nextUrl.host;
-    const allowedOrigins = [
-      host ? `https://${host}` : null,
-      host ? `http://${host}` : null,
-      "http://localhost:3000",
-    ].filter(Boolean) as string[];
-    if (!origin || !allowedOrigins.some((a) => origin === a)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const originErr = validateOrigin(req);
+    if (originErr) return originErr;
 
     const { token } = await params;
     const { jobId } = verifyClientAccessToken(token);
