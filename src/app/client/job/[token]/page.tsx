@@ -349,18 +349,50 @@ export default function ClientJobPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. It expires in 15 minutes.
             </p>
-            <div className="mt-5 space-y-3 text-left">
-              <Label htmlFor="verify-code">Verification code</Label>
-              <Input
-                id="verify-code"
-                type="text"
-                inputMode="numeric"
-                placeholder="000000"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                className="text-center text-lg tracking-[0.5em]"
-              />
+            <div className="mt-6 space-y-5">
+              <label className="block text-center text-sm font-medium text-foreground">
+                Enter verification code
+              </label>
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                {Array.from({ length: 6 }).map((_, i) => {
+                  const digit = code[i] ?? "";
+                  return (
+                    <input
+                      key={i}
+                      autoFocus={i === 0}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      autoComplete="one-time-code"
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        if (!val) return;
+                        const next = code.slice(0, i) + val + code.slice(i + 1);
+                        setCode(next.slice(0, 6));
+                        const inputs = (e.target.closest("div")?.querySelectorAll("input") ?? []) as NodeListOf<HTMLInputElement>;
+                        if (i < 5 && inputs[i + 1]) inputs[i + 1].focus();
+                      }}
+                      onKeyDown={(e) => {
+                        const inputs = (e.currentTarget.closest("div")?.querySelectorAll("input") ?? []) as NodeListOf<HTMLInputElement>;
+                        if (e.key === "Backspace" && !digit && i > 0 && inputs[i - 1]) {
+                          inputs[i - 1].focus();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                        if (pasted.length === 6) {
+                          setCode(pasted);
+                          const inputs = (e.currentTarget.closest("div")?.querySelectorAll("input") ?? []) as NodeListOf<HTMLInputElement>;
+                          if (inputs[5]) inputs[5].focus();
+                        }
+                      }}
+                      className="size-11 rounded-xl border border-input bg-background text-center text-lg font-semibold text-foreground outline-none transition-all duration-150 placeholder:text-muted-foreground/40 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 sm:size-13 sm:text-xl"
+                    />
+                  );
+                })}
+              </div>
               <Button
                 onClick={handleVerifyCode}
                 disabled={verifying || code.length < 6}
