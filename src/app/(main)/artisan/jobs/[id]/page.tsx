@@ -99,6 +99,8 @@ function JobDetail() {
     const shouldPoll = job && job.status === "COMPLETED" && !job.approvedAt;
     if (shouldPoll) {
       pollRef.current = setInterval(loadJob, 5000);
+    } else {
+      pollRef.current = undefined;
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [job?.status, job?.approvedAt, loadJob]);

@@ -246,6 +246,8 @@ export default function ClientJobPage() {
     if (pollRef.current) clearInterval(pollRef.current);
     if (data && (data.status === "ACTIVE" || data.status === "IN_PROGRESS")) {
       pollRef.current = setInterval(loadJob, 5000);
+    } else {
+      pollRef.current = undefined;
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [data?.status, loadJob]);
