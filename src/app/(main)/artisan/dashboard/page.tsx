@@ -68,6 +68,8 @@ function ArtisanDashboard() {
 
   const displayName = user?.email?.split("@")[0] ?? user?.phoneNumber ?? "";
 
+  const groups = useMemo(() => groupJobs(jobs), [jobs]);
+
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-6">
@@ -97,8 +99,6 @@ function ArtisanDashboard() {
       </div>
     );
   }
-
-  const groups = useMemo(() => groupJobs(jobs), [jobs]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
