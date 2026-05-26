@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ escrow, ledger });
-  } catch {
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") console.error("GET /api/escrow error:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

@@ -6,7 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Briefcase, Loader2, RefreshCcw } from "lucide-react";
+import { Plus, Briefcase, RefreshCcw } from "lucide-react";
 import { getStatusLabel, getStatusStyle } from "@/lib/job-status";
 
 type Job = {

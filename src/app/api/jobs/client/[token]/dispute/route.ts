@@ -45,32 +45,32 @@ export async function POST(
       return NextResponse.json({ error: "Please describe the issue" }, { status: 400 });
     }
 
-    // Create dispute
-    const dispute = await prisma.dispute.create({
-      data: {
-        jobId: job.id,
-        raisedBy: job.clientId,
-        reason: reason.trim(),
-        status: "OPEN",
-      },
+    let disputeId: string;
+    await prisma.$transaction(async (tx) => {
+      const dispute = await tx.dispute.create({
+        data: {
+          jobId: job.id,
+          raisedBy: job.clientId,
+          reason: reason.trim(),
+          status: "OPEN",
+        },
+      });
+      disputeId = dispute.id;
+      await tx.job.update({
+        where: { id: job.id },
+        data: { status: "DISPUTED" },
+      });
     });
 
-    // Update job status
-    await prisma.job.update({
-      where: { id: job.id },
-      data: { status: "DISPUTED" },
-    });
-
-    // Record ledger entry
     await writeLedgerEntry({
       jobId: job.id,
       event: "job.disputed",
       actorId: job.clientId,
-      reference: `DISPUTE-${dispute.id.slice(0, 8)}`,
+      reference: `DISPUTE-${disputeId!.slice(0, 8)}`,
       metadata: { reason: reason.trim() },
     });
 
-    return NextResponse.json({ success: true, disputeId: dispute.id });
+    return NextResponse.json({ success: true, disputeId: disputeId! });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ error: msg }, { status: 500 });

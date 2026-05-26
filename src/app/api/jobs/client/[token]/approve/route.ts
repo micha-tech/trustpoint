@@ -41,25 +41,23 @@ export async function POST(
       );
     }
 
-    // Release job amount to artisan (fee stays as platform revenue)
     const releaseAmount = Math.min(job.amount, job.escrow.pendingAmount);
 
-    await prisma.escrowState.update({
-      where: { jobId: job.id },
-      data: {
-        status: "RELEASED",
-        releasedAmount: { increment: releaseAmount },
-        pendingAmount: { decrement: releaseAmount },
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.escrowState.update({
+        where: { jobId: job.id },
+        data: {
+          status: "RELEASED",
+          releasedAmount: { increment: releaseAmount },
+          pendingAmount: { decrement: releaseAmount },
+        },
+      });
+      await tx.job.update({
+        where: { id: job.id },
+        data: { status: "COMPLETED", approvedAt: new Date() },
+      });
     });
 
-    // Update job status
-    await prisma.job.update({
-      where: { id: job.id },
-      data: { status: "COMPLETED", approvedAt: new Date() },
-    });
-
-    // Record ledger entry
     await writeLedgerEntry({
       jobId: job.id,
       event: "job.approved",

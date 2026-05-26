@@ -171,6 +171,8 @@ export default function ClientJobPage() {
       });
       if (res.ok) {
         toast.success("Issue submitted. TrustPoint will review.");
+        setShowDisputeForm(false);
+        setDisputeReason("");
         loadJob();
       } else {
         const err = await res.json();
@@ -256,7 +258,7 @@ export default function ClientJobPage() {
             </div>
             <h1 className="text-lg font-bold text-foreground">Verification unavailable</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              The artisan needs to add your email to this project. Ask them to update the project.
+              The artisan needs to add your email to this project. Ask them to create a new project with your email.
             </p>
           </div>
         </div>

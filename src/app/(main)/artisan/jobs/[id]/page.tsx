@@ -169,7 +169,7 @@ function JobDetail() {
         const err = await res.json();
         throw new Error(err.error ?? "Failed");
       }
-      toast.success("                  Work submitted. Your client has been notified.");
+      toast.success("Work submitted. Your client has been notified.");
       loadJob();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Could not update");

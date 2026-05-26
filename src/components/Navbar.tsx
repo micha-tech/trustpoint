@@ -26,9 +26,13 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     if (!auth) return;
-    await signOut(auth);
-    setOpen(false);
-    router.push("/");
+    try {
+      await signOut(auth);
+      setOpen(false);
+      router.push("/");
+    } catch {
+      if (process.env.NODE_ENV !== "production") console.error("Sign out failed");
+    }
   };
 
   if (!user || isAuthPage) return null;

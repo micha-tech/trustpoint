@@ -3,37 +3,54 @@ import { prisma } from "@/lib/prisma";
 import { verifyClientAccessToken } from "@/lib/security/tokens";
 
 export async function POST(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
     const { token } = await params;
     const { jobId } = verifyClientAccessToken(token);
 
-    const { email, code } = await req.json();
+    const { email, code } = await _req.json();
     if (!email || typeof email !== "string" || !code || typeof code !== "string") {
       return NextResponse.json({ error: "Email and code are required" }, { status: 400 });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const record = await prisma.emailVerificationCode.findFirst({
+    const allCodes = await prisma.emailVerificationCode.findMany({
       where: {
         jobId,
         email: normalizedEmail,
-        code,
         verifiedAt: null,
-        expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    if (!record) {
-      return NextResponse.json({ error: "Invalid or expired code." }, { status: 401 });
+    const totalAttempts = allCodes.reduce((sum, c) => sum + c.attempts, 0);
+    if (totalAttempts >= 5) {
+      return NextResponse.json(
+        { error: "Too many attempts. Request a new code." },
+        { status: 429 }
+      );
+    }
+
+    const latestValid = allCodes.find((c) => c.expiresAt > new Date()) ?? null;
+
+    if (!latestValid || latestValid.code !== code) {
+      if (latestValid) {
+        await prisma.emailVerificationCode.update({
+          where: { id: latestValid.id },
+          data: { attempts: { increment: 1 } },
+        });
+      }
+      return NextResponse.json(
+        { error: "Invalid or expired code." },
+        { status: 401 }
+      );
     }
 
     await prisma.emailVerificationCode.update({
-      where: { id: record.id },
+      where: { id: latestValid.id },
       data: { verifiedAt: new Date() },
     });
 
@@ -49,7 +66,6 @@ export async function POST(
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    const j = job as Record<string, unknown>;
     return NextResponse.json({
       verified: true,
       job: {
@@ -60,9 +76,9 @@ export async function POST(
         fee: job.fee,
         ref: job.ref,
         status: job.status,
-        expectedCompletionDate: j.expectedCompletionDate ?? null,
-        completedAt: j.completedAt ?? null,
-        approvedAt: j.approvedAt ?? null,
+        expectedCompletionDate: job.expectedCompletionDate,
+        completedAt: job.completedAt,
+        approvedAt: job.approvedAt,
         artisan: job.artisan,
         escrow: job.escrow,
         createdAt: job.createdAt,

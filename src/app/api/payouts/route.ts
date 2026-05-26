@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(payouts);
-  } catch {
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") console.error("GET /api/payouts error:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
