@@ -10,6 +10,14 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const user = await getUserFromToken(token);
+
+    // Ensure user has an artisan profile — auto-create if missing
+    await prisma.artisanProfile.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id },
+      update: {},
+    });
+
     const body = await req.json();
 
     const { title, description, amount, clientEmail, expectedCompletionDate } = body;
@@ -36,8 +44,8 @@ export async function POST(req: NextRequest) {
         amount,
         fee,
         ref,
-        clientId: user.id,
         artisanId: user.id,
+        clientId: user.id,
         clientEmail: clientEmail?.trim().toLowerCase(),
         clientToken,
         expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
@@ -134,9 +142,7 @@ export async function GET(req: NextRequest) {
     const user = await getUserFromToken(token);
 
     const jobs = await prisma.job.findMany({
-      where: {
-        OR: [{ clientId: user.id }, { artisanId: user.id }],
-      },
+      where: { artisanId: user.id },
       include: { escrow: true },
       orderBy: { createdAt: "desc" },
     });
