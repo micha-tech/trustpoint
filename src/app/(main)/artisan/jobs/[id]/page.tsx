@@ -41,6 +41,17 @@ type Dispute = {
   createdAt: string;
 };
 
+type PayoutRelease = {
+  id: string;
+  amount: number;
+  status: string;
+  reference: string;
+  failureReason: string | null;
+  transferCode: string | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
 type Job = {
   id: string;
   title: string;
@@ -58,6 +69,7 @@ type Job = {
   virtualAccount: { bankName: string; accountNumber: string; accountName: string } | null;
   paymentReferences: { reference: string; status: string }[];
   disputes: Dispute[];
+  payoutReleases: PayoutRelease[];
 };
 
 function JobDetail() {
@@ -70,6 +82,7 @@ function JobDetail() {
   const [copied, setCopied] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [retryingPayout, setRetryingPayout] = useState<string | null>(null);
 
   const loadJob = useCallback(async () => {
     if (!user) return;
@@ -177,6 +190,28 @@ function JobDetail() {
       toast.error(err instanceof Error ? err.message : "Could not update");
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const handleRetryPayout = async (payoutId: string) => {
+    if (!user) return;
+    setRetryingPayout(payoutId);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/payouts/${payoutId}/retry`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Retry failed");
+      }
+      toast.success("Payout retry initiated");
+      loadJob();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Could not retry payout");
+    } finally {
+      setRetryingPayout(null);
     }
   };
 
@@ -392,6 +427,53 @@ function JobDetail() {
             <p className="mt-1 text-xs text-orange-700">
               TrustPoint will review the issue before payment is released.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payout History */}
+      {job.payoutReleases && job.payoutReleases.length > 0 && (
+        <Card className="mb-6">
+          <CardContent className="p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+              <Landmark className="size-4" />
+              Payout History
+            </h3>
+            <div className="space-y-2 text-sm">
+              {job.payoutReleases.map((pr) => (
+                <div key={pr.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-xs text-muted-foreground">{pr.reference}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ₦{(pr.amount / 100).toLocaleString()}
+                      {pr.failureReason && ` — ${pr.failureReason}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      pr.status === "COMPLETED" ? "bg-emerald-50 text-emerald-700" :
+                      pr.status === "FAILED" ? "bg-red-50 text-red-700" :
+                      "bg-amber-50 text-amber-700"
+                    }`}>
+                      {pr.status}
+                    </span>
+                    {pr.status === "FAILED" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRetryPayout(pr.id)}
+                        disabled={retryingPayout === pr.id}
+                      >
+                        {retryingPayout === pr.id
+                          ? <Loader2 className="size-3 animate-spin" />
+                          : <RefreshCcw className="size-3" />
+                        }
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

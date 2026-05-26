@@ -25,7 +25,7 @@ export async function GET(
 
     if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const [paymentReferences, virtualAccount] = await Promise.all([
+    const [paymentReferences, virtualAccount, payoutReleases] = await Promise.all([
       prisma.paymentReference.findMany({
         where: { jobId: id },
         select: { reference: true, status: true },
@@ -34,13 +34,17 @@ export async function GET(
         where: { jobId: id },
         select: { bankName: true, accountNumber: true, accountName: true },
       }),
+      prisma.payoutRelease.findMany({
+        where: { jobId: id },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
 
     const clientUrl = job.clientToken
       ? `${req.nextUrl.origin}/client/job/${job.clientToken}`
       : null;
 
-    return NextResponse.json({ ...job, paymentReferences, virtualAccount, clientUrl });
+    return NextResponse.json({ ...job, paymentReferences, virtualAccount, clientUrl, payoutReleases });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ error: msg }, { status: 500 });

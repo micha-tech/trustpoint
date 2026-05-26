@@ -121,6 +121,22 @@ export async function initiateTransfer(params: {
   return { transferCode: data.transfer_code, status: data.status };
 }
 
+export async function refundPayment(params: {
+  transactionReference: string;
+  amount?: number;
+  reason?: string;
+}) {
+  const data = await paystackFetch("/refund", {
+    method: "POST",
+    body: JSON.stringify({
+      transaction: params.transactionReference,
+      amount: params.amount,
+      reason: params.reason ?? "TrustPoint dispute resolution",
+    }),
+  });
+  return { refundId: data.id, status: data.status };
+}
+
 export async function recordPaymentReference(params: {
   jobId: string;
   reference: string;

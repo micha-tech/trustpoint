@@ -369,6 +369,25 @@ model Notification {
 // VIRTUAL ACCOUNTS (Paystack DVA)
 // ──────────────────────────────────────────
 
+// ──────────────────────────────────────────
+// APP LOGS (errors, events, audits)
+// ──────────────────────────────────────────
+
+model AppLog {
+  id        String   @id @default(cuid())
+  level     String   // error | warn | info
+  source    String   // e.g. webhook, payout, dispute, payment
+  message   String
+  details   Json?
+  reference String?  // e.g. job ref, payout ref, transfer code
+
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([source])
+  @@index([createdAt])
+}
+
 model VirtualAccount {
   id              String @id @default(cuid())
   jobId           String @unique
