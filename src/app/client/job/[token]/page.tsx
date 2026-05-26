@@ -68,6 +68,14 @@ export default function ClientJobPage() {
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [showDisputeConfirm, setShowDisputeConfirm] = useState(false);
+  const [paystackRef, setPaystackRef] = useState<string | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("reference") || params.get("trxref");
+    if (ref) setPaystackRef(ref);
+  }, []);
 
   const loadJob = useCallback(async () => {
     try {
@@ -90,6 +98,30 @@ export default function ClientJobPage() {
       setViewState("link-invalid");
     }
   }, [token]);
+
+  const verifyPayment = useCallback(async (ref: string) => {
+    setVerifyingPayment(true);
+    try {
+      const res = await fetch(`/api/payments/${ref}/verify`, { method: "POST" });
+      const body = await res.json();
+      if (res.ok) {
+        toast.success("Payment confirmed");
+        loadJob();
+      } else {
+        toast.error(body.error ?? "Payment verification failed");
+      }
+    } catch {
+      toast.error("Could not verify payment. The page will update automatically.");
+    } finally {
+      setVerifyingPayment(false);
+    }
+  }, [loadJob]);
+
+  useEffect(() => {
+    if (paystackRef && viewState === "verified" && data?.status === "PENDING_PAYMENT") {
+      verifyPayment(paystackRef);
+    }
+  }, [paystackRef, viewState, data?.status, verifyPayment]);
 
   useEffect(() => { loadJob(); }, [loadJob]);
 
@@ -404,15 +436,19 @@ export default function ClientJobPage() {
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   TrustPoint securely holds payment until the job is approved.
                 </p>
-                <Button className="w-full" asChild>
-                  <a href={`/api/payments/${data.ref}`} target="_blank" rel="noopener noreferrer">
-                    <Lock className="size-4" />
-                    Pay securely
-                  </a>
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Opens Paystack in a new tab. If it doesn&apos;t open, check your pop-up blocker.
-                </p>
+                {verifyingPayment ? (
+                  <Button className="w-full" disabled>
+                    <Loader2 className="size-4 animate-spin" />
+                    Confirming payment...
+                  </Button>
+                ) : (
+                  <Button className="w-full" asChild>
+                    <a href={`/api/payments/${data.ref}`}>
+                      <Lock className="size-4" />
+                      Pay securely
+                    </a>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
