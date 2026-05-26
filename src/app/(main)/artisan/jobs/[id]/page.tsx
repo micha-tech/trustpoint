@@ -20,7 +20,11 @@ import {
   Loader2,
   Shield,
   MessageCircle,
+  RefreshCcw,
+  AlertTriangle,
+  X,
 } from "lucide-react";
+import { getStatusLabel, getStatusStyle } from "@/lib/job-status";
 
 type EscrowState = {
   status: string;
@@ -54,54 +58,30 @@ type Job = {
   disputes: Dispute[];
 };
 
-function getStatusLabel(job: Job): string {
-  if (job.status === "COMPLETED") {
-    return job.approvedAt ? "Released" : "Awaiting client approval";
-  }
-  const labels: Record<string, string> = {
-    DRAFT: "Draft",
-    PENDING_PAYMENT: "Awaiting Payment",
-    ACTIVE: "Active",
-    IN_PROGRESS: "In Progress",
-    CANCELLED: "Cancelled",
-    DISPUTED: "Under Review",
-  };
-  return labels[job.status] ?? job.status.replace("_", " ");
-}
-
-function getStatusStyle(job: Job): string {
-  if (job.status === "COMPLETED") {
-    return job.approvedAt ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700";
-  }
-  const styles: Record<string, string> = {
-    DRAFT: "bg-muted text-muted-foreground",
-    PENDING_PAYMENT: "bg-amber-50 text-amber-700",
-    ACTIVE: "bg-blue-50 text-blue-700",
-    IN_PROGRESS: "bg-indigo-50 text-indigo-700",
-    CANCELLED: "bg-red-50 text-red-700",
-    DISPUTED: "bg-orange-50 text-orange-700",
-  };
-  return styles[job.status] ?? "bg-muted text-muted-foreground";
-}
-
 function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   const loadJob = useCallback(async () => {
     if (!user) return;
+    setFetchError(false);
     try {
       const token = await user.getIdToken();
       const res = await fetch(`/api/jobs/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setJob(res.ok ? await res.json() : null);
+      if (res.ok) { setJob(await res.json()); setError(false); }
+      else if (res.status === 404) { setJob(null); setError(false); }
+      else { setFetchError(true); }
     } catch {
-      setJob(null);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -111,7 +91,6 @@ function JobDetail() {
     loadJob();
   }, [loadJob]);
 
-  // Poll every 5s when awaiting client action
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
   useEffect(() => {
     const shouldPoll = job && job.status === "COMPLETED" && !job.approvedAt;
@@ -121,12 +100,15 @@ function JobDetail() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [job?.status, job?.approvedAt, loadJob]);
 
-  const copyLink = () => {
-    if (job?.clientUrl) {
-      navigator.clipboard.writeText(job.clientUrl);
+  const copyLink = async () => {
+    if (!job?.clientUrl) return;
+    try {
+      await navigator.clipboard.writeText(job.clientUrl);
       setCopied(true);
       toast.success("Link copied");
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Could not copy link");
     }
   };
 
@@ -135,13 +117,13 @@ function JobDetail() {
       const text = encodeURIComponent(
         `Hi! Use this link to make a secure payment for "${job.title}": ${job.clientUrl}`
       );
-      window.open(`https://wa.me/?text=${text}`, "_blank");
+      window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
     }
   };
 
   const handleMarkComplete = async () => {
     if (!user) return;
-    if (!window.confirm("Have you finished this job? This will notify your client.")) return;
+    setShowConfirm(false);
     setCompleting(true);
     try {
       const token = await user.getIdToken();
@@ -170,18 +152,31 @@ function JobDetail() {
     );
   }
 
-  if (!job) {
+  if (fetchError) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-muted-foreground">Job not found</p>
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 px-4">
+        <p className="text-sm text-muted-foreground">Unable to load job. Check your connection.</p>
+        <Button variant="outline" onClick={loadJob}>
+          <RefreshCcw className="size-4" />
+          Try Again
+        </Button>
       </div>
     );
   }
 
-  const escrowProgress =
-    job.escrow && job.escrow.totalAmount > 0
-      ? (job.escrow.releasedAmount / job.escrow.totalAmount) * 100
-      : 0;
+  if (!job) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 px-4">
+        <p className="text-sm text-muted-foreground">Job not found.</p>
+        <Link href="/artisan/dashboard">
+          <Button variant="outline">
+            <ArrowLeft className="size-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -202,9 +197,9 @@ function JobDetail() {
             <p className="mt-0.5 text-xs text-muted-foreground">{job.ref}</p>
           </div>
           <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${getStatusStyle(job)}`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${getStatusStyle(job.status, job.approvedAt)}`}
           >
-            {getStatusLabel(job)}
+            {getStatusLabel(job.status, job.approvedAt)}
           </span>
         </div>
         {job.description && (
@@ -223,9 +218,16 @@ function JobDetail() {
             })}
           </p>
         )}
+        {/* Polling indicator */}
+        {pollRef.current && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
+            <Loader2 className="size-3 animate-spin" />
+            Checking for updates...
+          </div>
+        )}
       </div>
 
-      {/* Workflow 3: Link generated — share with client */}
+      {/* Link ready — share with client */}
       {job.clientUrl && job.status === "PENDING_PAYMENT" && (
         <Card className="mb-5 border-brand-200 bg-brand-50 sm:mb-6">
           <CardContent className="p-4 sm:p-5">
@@ -254,11 +256,7 @@ function JobDetail() {
               </Button>
             </div>
 
-            <Button
-              onClick={shareWhatsApp}
-              variant="outline"
-              className="mt-3 w-full"
-            >
+            <Button onClick={shareWhatsApp} variant="outline" className="mt-3 w-full">
               <MessageCircle className="size-4 text-emerald-600" />
               Share via WhatsApp
             </Button>
@@ -266,7 +264,7 @@ function JobDetail() {
         </Card>
       )}
 
-      {/* Workflow 6: Payment verified — artisan can start */}
+      {/* Payment verified — artisan can start */}
       {(job.status === "ACTIVE" || job.status === "IN_PROGRESS") && (
         <Card className="mb-5 border-emerald-200 bg-emerald-50 sm:mb-6">
           <CardContent className="p-4 sm:p-5">
@@ -284,23 +282,48 @@ function JobDetail() {
               </div>
             </div>
 
-            <Button
-              onClick={handleMarkComplete}
-              disabled={completing}
-              className="mt-3 w-full"
-            >
-              {completing ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="size-4" />
-              )}
+            <Button onClick={() => setShowConfirm(true)} className="mt-3 w-full">
+              <CheckCircle2 className="size-4" />
               Mark Work as Completed
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Workflow 8: Release success */}
+      {/* Custom confirm dialog */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <Card className="w-full max-w-sm">
+            <CardContent className="p-5">
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                    <AlertTriangle className="size-4" />
+                  </div>
+                  <h3 className="text-sm font-medium text-foreground">Confirm completion</h3>
+                </div>
+                <button onClick={() => setShowConfirm(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <p className="mb-5 text-sm text-muted-foreground">
+                Have you finished this job? This will notify your client and they can approve the payment release.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowConfirm(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleMarkComplete} disabled={completing} className="flex-1">
+                  {completing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                  Confirm
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Release success */}
       {job.status === "COMPLETED" && job.approvedAt && (
         <Card className="mb-5 border-emerald-200 bg-emerald-50 sm:mb-6">
           <CardContent className="p-4 sm:p-5">
@@ -360,10 +383,21 @@ function JobDetail() {
                 </span>
               )}
             </div>
+            {/* Fee breakdown */}
+            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+              <div className="flex justify-between">
+                <span>Job amount</span>
+                <span>₦{(job.amount / 100).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Platform fee (5%)</span>
+                <span>₦{(job.fee / 100).toLocaleString()}</span>
+              </div>
+            </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-brand-500 transition-all duration-500"
-                style={{ width: `${escrowProgress}%` }}
+                style={{ width: `${job.escrow.totalAmount > 0 ? (job.escrow.releasedAmount / job.escrow.totalAmount) * 100 : 0}%` }}
               />
             </div>
           </CardContent>
@@ -381,22 +415,37 @@ function JobDetail() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Bank</span>
-                <span className="font-medium text-foreground">
-                  {job.virtualAccount.bankName}
-                </span>
+                <span className="font-medium text-foreground">{job.virtualAccount.bankName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Account Number</span>
-                <span className="font-mono font-bold text-foreground">
-                  {job.virtualAccount.accountNumber}
-                </span>
+                <span className="font-mono font-bold text-foreground">{job.virtualAccount.accountNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Account Name</span>
-                <span className="font-medium text-foreground">
-                  {job.virtualAccount.accountName}
-                </span>
+                <span className="font-medium text-foreground">{job.virtualAccount.accountName}</span>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Payment references */}
+      {job.paymentReferences && job.paymentReferences.length > 0 && (
+        <Card className="mb-6">
+          <CardContent className="p-5">
+            <h3 className="mb-3 text-sm font-medium text-foreground">Payment History</h3>
+            <div className="space-y-2 text-sm">
+              {job.paymentReferences.map((pr) => (
+                <div key={pr.reference} className="flex items-center justify-between">
+                  <span className="font-mono text-xs text-muted-foreground">{pr.reference}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    pr.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                  }`}>
+                    {pr.status}
+                  </span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

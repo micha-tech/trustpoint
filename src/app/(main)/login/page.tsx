@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LockKeyhole } from "lucide-react";
+import { Loader2, LockKeyhole, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,6 +24,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!authLoading && authUser && !signedIn) {
@@ -86,7 +87,6 @@ export default function LoginPage() {
       const msg = fbErr?.message ?? "";
       if (process.env.NODE_ENV !== "production") console.error("Google sign-in error:", { code, message: msg });
       if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
-        // user just closed the popup — no toast needed
       } else if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {
         toast.error("Pop-up was blocked. Please allow pop-ups for this site.");
       } else if (code.includes("account-exists-with-different-credential") || msg.includes("account-exists-with-different-credential")) {
@@ -100,6 +100,17 @@ export default function LoginPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (signedIn) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="text-center">
+          <Loader2 className="mx-auto size-6 animate-spin text-brand-500" />
+          <p className="mt-3 text-sm text-muted-foreground">Signing you in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
@@ -115,9 +126,6 @@ export default function LoginPage() {
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Secure payments for real-world jobs</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to manage your jobs</p>
-          {signedIn && (
-            <p className="mt-1 text-sm text-muted-foreground">Signing you in...</p>
-          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -130,25 +138,44 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={signedIn}
                 autoComplete="email"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={signedIn}
-                autoComplete="current-password"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); toast.error("Password reset coming soon. Contact support."); }}
+                  className="text-xs text-brand-600 hover:text-brand-700"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
             <Button
               type="submit"
-              disabled={loading || !email.trim() || !password.trim() || signedIn}
+              disabled={loading || !email.trim() || !password.trim()}
               className="w-full"
             >
               {loading ? (
@@ -169,8 +196,9 @@ export default function LoginPage() {
           <Button
             onClick={handleGoogleSignIn}
             variant="outline"
-            disabled={googleLoading || signedIn}
+            disabled={googleLoading}
             className="w-full"
+            aria-label="Sign in with Google account"
           >
             {googleLoading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -189,7 +217,7 @@ export default function LoginPage() {
         <p className="mt-5 text-center text-xs text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link href="/register" className="font-medium text-brand-600 hover:text-brand-700">
-            Create one
+            Sign up
           </Link>
         </p>
       </div>

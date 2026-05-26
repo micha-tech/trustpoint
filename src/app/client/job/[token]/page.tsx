@@ -14,6 +14,7 @@ import {
   Clock,
   Loader2,
   AlertTriangle,
+  X,
 } from "lucide-react";
 
 type EscrowState = {
@@ -45,31 +46,40 @@ export default function ClientJobPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<ClientJob | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
   const [approving, setApproving] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [showDisputeConfirm, setShowDisputeConfirm] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   const loadJob = useCallback(() => {
     fetch(`/api/jobs/client/${token}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setData)
       .catch(() => setData(null))
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setInitialLoadDone(true); });
   }, [token]);
 
+  // Check for Paystack redirect params on first load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("reference") || params.get("trxref");
-    if (ref) {
+    if (ref && !verifying) {
+      setVerifying(true);
+      setLoading(true);
       fetch(`/api/payments/${ref}/verify`, { method: "POST" })
-        .then((r) => { if (r.ok) toast.success("Payment verified"); })
-        .catch(() => {})
-        .finally(() => loadJob());
+        .then((r) => {
+          if (r.ok) toast.success("Payment verified");
+          else r.json().then((e) => toast.error(e.error ?? "Payment verification failed. Contact the artisan.")).catch(() => {});
+        })
+        .catch(() => toast.error("Payment verification failed. Contact the artisan."))
+        .finally(() => { setVerifying(false); loadJob(); });
       return;
     }
     loadJob();
-  }, [loadJob]);
+  }, []);
 
   // Poll every 5s while waiting for artisan to mark complete
   const pollRef = useRef<ReturnType<typeof setInterval>>(undefined);
@@ -95,9 +105,7 @@ export default function ClientJobPage() {
   const handleApprove = async () => {
     setApproving(true);
     try {
-      const res = await fetch(`/api/jobs/client/${token}/approve`, {
-        method: "POST",
-      });
+      const res = await fetch(`/api/jobs/client/${token}/approve`, { method: "POST" });
       if (res.ok) {
         toast.success("Payment released successfully");
         loadJob();
@@ -112,7 +120,8 @@ export default function ClientJobPage() {
     }
   };
 
-  const handleDispute = async () => {
+  const confirmDispute = async () => {
+    setShowDisputeConfirm(false);
     if (!disputeReason.trim()) return;
     setSubmittingDispute(true);
     try {
@@ -139,7 +148,17 @@ export default function ClientJobPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3">
         <Loader2 className="size-6 animate-spin text-brand-500" />
-        <p className="text-sm text-muted-foreground">Verifying payment...</p>
+        <p className="text-sm text-muted-foreground">
+          {verifying ? "Verifying payment..." : "Loading job details..."}
+        </p>
+      </div>
+    );
+  }
+
+  if (!data && !initialLoadDone) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-brand-500" />
       </div>
     );
   }
@@ -155,6 +174,9 @@ export default function ClientJobPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             This payment link may have expired or is invalid. Ask the artisan to share a new link.
           </p>
+          <Button variant="outline" className="mt-4" onClick={loadJob}>
+            Try Again
+          </Button>
         </div>
       </div>
     );
@@ -170,7 +192,6 @@ export default function ClientJobPage() {
         </Link>
       </div>
 
-      {/* Trust Banner */}
       {viewState !== "dispute" && viewState !== "error" && (
         <div className="mb-4 rounded-xl bg-brand-50 p-3 text-center text-xs text-brand-700">
           <Shield className="mx-auto mb-1 size-4" />
@@ -178,7 +199,13 @@ export default function ClientJobPage() {
         </div>
       )}
 
-      {/* Job Card */}
+      {pollRef.current && (
+        <div className="mb-4 flex items-center justify-center gap-1.5 text-xs text-amber-600">
+          <Loader2 className="size-3 animate-spin" />
+          Checking for artisan updates...
+        </div>
+      )}
+
       <Card className="mb-4">
         <CardContent className="p-5">
           <p className="mb-1 text-xs text-muted-foreground">{data.ref}</p>
@@ -217,39 +244,33 @@ export default function ClientJobPage() {
         </CardContent>
       </Card>
 
-      {/* View: Payment */}
+      {/* Payment */}
       {viewState === "payment" && (
-        <>
-          <Card className="mb-4 border-brand-200">
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2">
-                <Clock className="size-4 text-amber-600" />
-                <span className="text-sm font-medium text-amber-700">
-                  Awaiting Payment
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                TrustPoint securely holds payment until the job is approved.
-              </p>
-              <Button className="w-full" asChild>
-                <a
-                  href={`/api/payments/${data.ref}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Lock className="size-4" />
-                  Fund Protected Payment
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-          <p className="text-center text-xs text-muted-foreground">
-            TrustPoint securely holds payment until the job is approved.
-          </p>
-        </>
+        <Card className="mb-4 border-brand-200">
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-center gap-2">
+              <Clock className="size-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700">
+                Awaiting Payment
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              TrustPoint securely holds payment until the job is approved.
+            </p>
+            <Button className="w-full" asChild>
+              <a href={`/api/payments/${data.ref}`} target="_blank" rel="noopener noreferrer">
+                <Lock className="size-4" />
+                Fund Protected Payment
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Opens Paystack in a new tab. If it doesn&apos;t open, check your pop-up blocker.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* View: Payment Success / Funded */}
+      {/* Payment Success */}
       {viewState === "success" && (
         <Card className="mb-4 border-emerald-200 bg-emerald-50">
           <CardContent className="space-y-3 p-5 text-center">
@@ -272,7 +293,7 @@ export default function ClientJobPage() {
         </Card>
       )}
 
-      {/* View: Client Approval */}
+      {/* Client Approval */}
       {viewState === "approval" && (
         <Card className="mb-4 border-amber-200 bg-amber-50">
           <CardContent className="space-y-4 p-5">
@@ -307,6 +328,8 @@ export default function ClientJobPage() {
                 variant="outline"
                 onClick={() => setShowDisputeForm(true)}
                 className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                aria-expanded={showDisputeForm}
+                aria-controls="approval-dispute-form"
               >
                 <AlertTriangle className="size-4" />
                 Report an Issue
@@ -314,11 +337,11 @@ export default function ClientJobPage() {
             </div>
 
             {showDisputeForm && (
-              <div className="space-y-3">
+              <div id="approval-dispute-form" className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="dispute-reason">Briefly describe the issue</Label>
+                  <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
                   <textarea
-                    id="dispute-reason"
+                    id="approval-dispute-reason"
                     rows={3}
                     maxLength={500}
                     placeholder="Briefly describe the issue."
@@ -329,7 +352,7 @@ export default function ClientJobPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleDispute}
+                    onClick={() => setShowDisputeConfirm(true)}
                     disabled={submittingDispute || !disputeReason.trim()}
                     className="flex-1"
                   >
@@ -353,7 +376,39 @@ export default function ClientJobPage() {
         </Card>
       )}
 
-      {/* View: Released */}
+      {/* Dispute confirm dialog */}
+      {showDisputeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <Card className="w-full max-w-sm">
+            <CardContent className="p-5">
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                    <AlertTriangle className="size-4" />
+                  </div>
+                  <h3 className="text-sm font-medium text-foreground">Submit issue?</h3>
+                </div>
+                <button onClick={() => setShowDisputeConfirm(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <p className="mb-5 text-sm text-muted-foreground">
+                This will pause the payment process. TrustPoint will review both sides before releasing funds.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowDisputeConfirm(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={confirmDispute} disabled={submittingDispute} className="flex-1">
+                  {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : "Submit Issue"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Released */}
       {viewState === "released" && (
         <Card className="mb-4 border-emerald-200 bg-emerald-50">
           <CardContent className="space-y-3 p-5 text-center">
@@ -372,7 +427,7 @@ export default function ClientJobPage() {
         </Card>
       )}
 
-      {/* View: Dispute */}
+      {/* Dispute */}
       {viewState === "dispute" && (
         <Card className="mb-4 border-orange-200">
           <CardContent className="space-y-4 p-5">
@@ -405,7 +460,7 @@ export default function ClientJobPage() {
                   />
                 </div>
                 <Button
-                  onClick={handleDispute}
+                  onClick={() => setShowDisputeConfirm(true)}
                   disabled={submittingDispute || !disputeReason.trim()}
                   className="w-full"
                 >
@@ -422,7 +477,6 @@ export default function ClientJobPage() {
         </Card>
       )}
 
-      {/* Footer */}
       <div className="mt-8 text-center text-xs text-muted-foreground">
         <p>
           Powered by{" "}

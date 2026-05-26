@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LockKeyhole } from "lucide-react";
+import { Loader2, LockKeyhole, Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,6 +25,12 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  const passwordsMatch = password === confirmPassword;
+  const confirmTouched = confirmPassword.length > 0;
 
   useEffect(() => {
     if (!authLoading && authUser && !signedIn) {
@@ -47,6 +53,10 @@ export default function RegisterPage() {
     }
     if (password !== confirmPassword) {
       toast.error("Passwords don't match.");
+      return;
+    }
+    if (!agreeTerms) {
+      toast.error("Please agree to the Terms of Service.");
       return;
     }
     setLoading(true);
@@ -95,7 +105,6 @@ export default function RegisterPage() {
       const msg = fbErr?.message ?? "";
       if (process.env.NODE_ENV !== "production") console.error("Google sign-up error:", { code, message: msg });
       if (code.includes("popup-closed-by-user") || msg.includes("popup-closed-by-user")) {
-        // user closed popup — no toast
       } else if (code.includes("popup-blocked") || msg.includes("popup-blocked")) {
         toast.error("Pop-up was blocked. Please allow pop-ups for this site.");
       } else if (code.includes("account-exists-with-different-credential") || msg.includes("account-exists-with-different-credential")) {
@@ -109,6 +118,17 @@ export default function RegisterPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (signedIn) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="text-center">
+          <Loader2 className="mx-auto size-6 animate-spin text-brand-500" />
+          <p className="mt-3 text-sm text-muted-foreground">Creating your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
@@ -124,9 +144,6 @@ export default function RegisterPage() {
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Create your account</h1>
           <p className="mt-1 text-sm text-muted-foreground">Start protecting your payments</p>
-          {signedIn && (
-            <p className="mt-1 text-sm text-muted-foreground">Signing you in...</p>
-          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -139,37 +156,76 @@ export default function RegisterPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={signedIn}
                 autoComplete="email"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={signedIn}
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Repeat your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={signedIn}
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Repeat your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              {confirmTouched && !passwordsMatch && (
+                <p className="text-sm text-destructive">Passwords don&apos;t match.</p>
+              )}
             </div>
+
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="mt-1 size-3.5 shrink-0 rounded border-border text-brand-600 focus:ring-brand-500"
+              />
+              <span className="text-xs text-muted-foreground">
+                I agree to the{" "}
+                <span className="text-brand-600">Terms of Service</span> and{" "}
+                <span className="text-brand-600">Privacy Policy</span>
+              </span>
+            </label>
+
             <Button
               type="submit"
-              disabled={loading || !email.trim() || !password.trim() || !confirmPassword.trim() || signedIn}
+              disabled={loading || !email.trim() || !password.trim() || !confirmPassword.trim() || !agreeTerms}
               className="w-full"
             >
               {loading ? (
@@ -190,8 +246,9 @@ export default function RegisterPage() {
           <Button
             onClick={handleGoogleSignUp}
             variant="outline"
-            disabled={googleLoading || signedIn}
+            disabled={googleLoading}
             className="w-full"
+            aria-label="Sign up with Google account"
           >
             {googleLoading ? (
               <Loader2 className="size-4 animate-spin" />
