@@ -32,10 +32,7 @@ export default function AdminDisputesPage() {
     setLoading(true);
     setError(false);
     try {
-      const token = sessionStorage.getItem("admin_token");
-      const res = await fetch("/api/admin/disputes", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/admin/disputes");
       if (!res.ok) throw new Error();
       setDisputes(await res.json());
     } catch {

@@ -44,7 +44,8 @@ export async function GET(
       ? `${req.nextUrl.origin}/client/job/${job.clientToken}`
       : null;
 
-    return NextResponse.json({ ...job, paymentReferences, virtualAccount, clientUrl, payoutReleases });
+    const { clientToken: _clientToken, ...safeJob } = job;
+    return NextResponse.json({ ...safeJob, paymentReferences, virtualAccount, clientUrl, payoutReleases });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ error: msg }, { status: 500 });

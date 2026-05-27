@@ -41,30 +41,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/escrow/refund — initiate refund
-export async function POST(req: NextRequest) {
-  try {
-    const token = req.headers.get("authorization")?.replace("Bearer ", "");
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const user = await getUserFromToken(token);
-    const body = await req.json();
-    const { jobId } = body;
-
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      select: { clientId: true, artisanId: true },
-    });
-    if (!job || (job.clientId !== user.id && job.artisanId !== user.id)) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
-    const { refundEscrow } = await import("@/lib/services/escrow");
-    const escrow = await refundEscrow(jobId);
-
-    return NextResponse.json(escrow);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+// Refunds are intentionally restricted to admin dispute resolution.
+export async function POST(_req: NextRequest) {
+  return NextResponse.json(
+    { error: "Escrow refunds must be handled through dispute resolution" },
+    { status: 405 }
+  );
 }

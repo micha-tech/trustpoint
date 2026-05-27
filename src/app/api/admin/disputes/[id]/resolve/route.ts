@@ -3,20 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 import { refundPayment, initiateTransfer } from "@/lib/paystack";
 import { generateRef } from "@/lib/security/tokens";
-
-const ADMIN_SECRET = () => process.env.DISPUTE_SECRET ?? "";
-
-function verifyAdmin(req: NextRequest): boolean {
-  const auth = req.headers.get("authorization")?.replace("Bearer ", "");
-  return auth === ADMIN_SECRET();
-}
+import { verifyAdminSecret } from "@/lib/security/admin";
+import { validateOrigin } from "@/lib/middleware/origin";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!verifyAdmin(req)) {
+    const originErr = validateOrigin(req);
+    if (originErr) return originErr;
+
+    if (!verifyAdminSecret(req)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -70,27 +68,34 @@ export async function POST(
       }
 
       const releaseAmount = Math.min(job.amount, escrow.pendingAmount);
+      if (releaseAmount <= 0) {
+        return NextResponse.json({ error: "Escrow has no releasable funds" }, { status: 400 });
+      }
 
       await prisma.$transaction(async (tx) => {
-        await tx.escrowState.update({
-          where: { jobId: job.id },
+        const disputeClaim = await tx.dispute.updateMany({
+          where: { id: dispute.id, status: { in: ["OPEN", "UNDER_REVIEW"] } },
+          data: {
+            status: "RESOLVED_ARTISAN",
+            resolution: note ?? "Resolved in favor of artisan",
+            resolvedAt: new Date(),
+          },
+        });
+        if (disputeClaim.count === 0) throw new Error("Dispute is already resolved");
+
+        const escrowClaim = await tx.escrowState.updateMany({
+          where: { jobId: job.id, pendingAmount: { gte: releaseAmount } },
           data: {
             status: "RELEASED",
             releasedAmount: { increment: releaseAmount },
             pendingAmount: { decrement: releaseAmount },
           },
         });
+        if (escrowClaim.count === 0) throw new Error("Escrow is not in a releasable state");
+
         await tx.job.update({
           where: { id: job.id },
           data: { status: "COMPLETED", approvedAt: new Date() },
-        });
-        await tx.dispute.update({
-          where: { id: dispute.id },
-          data: {
-            status: "RESOLVED_ARTISAN",
-            resolution: note ?? "Resolved in favor of artisan",
-            resolvedAt: new Date(),
-          },
         });
       });
 
@@ -149,6 +154,16 @@ export async function POST(
       });
 
       await prisma.$transaction(async (tx) => {
+        const disputeClaim = await tx.dispute.updateMany({
+          where: { id: dispute.id, status: { in: ["OPEN", "UNDER_REVIEW"] } },
+          data: {
+            status: "RESOLVED_CLIENT",
+            resolution: note ?? "Resolved in favor of client — refund issued",
+            resolvedAt: new Date(),
+          },
+        });
+        if (disputeClaim.count === 0) throw new Error("Dispute is already resolved");
+
         await tx.escrowState.update({
           where: { jobId: job.id },
           data: {
@@ -160,14 +175,6 @@ export async function POST(
         await tx.job.update({
           where: { id: job.id },
           data: { status: "CANCELLED" },
-        });
-        await tx.dispute.update({
-          where: { id: dispute.id },
-          data: {
-            status: "RESOLVED_CLIENT",
-            resolution: note ?? "Resolved in favor of client — refund issued",
-            resolvedAt: new Date(),
-          },
         });
       });
 

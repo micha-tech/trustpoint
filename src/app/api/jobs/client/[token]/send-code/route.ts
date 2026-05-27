@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { verifyClientAccessToken } from "@/lib/security/tokens";
+import { hashVerificationCode, verifyClientAccessToken } from "@/lib/security/tokens";
 import { sendEmail } from "@/lib/resend";
 
 function generateCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return randomInt(100000, 1000000).toString();
 }
 
 export async function POST(
@@ -61,13 +62,14 @@ export async function POST(
     }
 
     const code = generateCode();
+    const codeHash = hashVerificationCode(jobId, normalizedEmail, code);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await prisma.emailVerificationCode.create({
       data: {
         jobId,
         email: normalizedEmail,
-        code,
+        code: codeHash,
         expiresAt,
       },
     });

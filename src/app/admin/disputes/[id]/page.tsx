@@ -44,10 +44,7 @@ export default function AdminDisputeDetailPage() {
     setLoading(true);
     setError(false);
     try {
-      const token = sessionStorage.getItem("admin_token");
-      const res = await fetch("/api/admin/disputes", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/admin/disputes");
       if (!res.ok) throw new Error();
       const list: DisputeDetail[] = await res.json();
       const found = list.find((d) => d.id === id);
@@ -66,11 +63,9 @@ export default function AdminDisputeDetailPage() {
     setConfirm(null);
     setResolving(true);
     try {
-      const token = sessionStorage.getItem("admin_token");
       const res = await fetch(`/api/admin/disputes/${id}/resolve`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

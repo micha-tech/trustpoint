@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth-server";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 import { sendEmail } from "@/lib/resend";
+import { escapeHtml } from "@/lib/security/html";
 
 export async function POST(
   req: NextRequest,
@@ -55,6 +56,8 @@ export async function POST(
       const clientUrl = job.clientToken
         ? `${req.nextUrl.origin}/client/job/${job.clientToken}`
         : null;
+      const artisanName = escapeHtml(job.artisan?.name ?? "Your artisan");
+      const jobTitle = escapeHtml(job.title);
 
       sendEmail({
         to: job.clientEmail,
@@ -62,7 +65,7 @@ export async function POST(
         html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
           <h2 style="color:#1877f2;margin:0 0 16px">TrustPoint</h2>
           <p style="color:#1a1a1a;font-size:14px;line-height:1.5">
-            ${job.artisan?.name ?? "Your artisan"} has marked <strong>${job.title}</strong> as complete.
+            ${artisanName} has marked <strong>${jobTitle}</strong> as complete.
           </p>
           <p style="color:#1a1a1a;font-size:14px;line-height:1.5">
             Review the work and release the payment when you're satisfied.

@@ -1,6 +1,12 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-const PAYSTACK_SECRET = () => process.env.PAYSTACK_SECRET_KEY ?? "";
+function paystackSecret(): string {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) {
+    throw new Error("PAYSTACK_SECRET_KEY environment variable is not set");
+  }
+  return secret;
+}
 
 // ──────────────────────────────────────────
 // Paystack webhook signature verification
@@ -10,7 +16,7 @@ export function verifyPaystackSignature(
   body: string,
   signatureHeader: string
 ): boolean {
-  const hash = createHmac("sha512", PAYSTACK_SECRET())
+  const hash = createHmac("sha512", paystackSecret())
     .update(body)
     .digest("hex");
 

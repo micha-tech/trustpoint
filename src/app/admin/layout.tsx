@@ -85,15 +85,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === "/admin/login";
 
   useEffect(() => {
-    const token = sessionStorage.getItem("admin_token");
-    if (!token) {
-      if (!isLoginPage) router.replace("/admin/login");
-      setChecking(false);
-      return;
-    }
-    fetch("/api/admin/fees", {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then((res) => {
+    fetch("/api/admin/fees").then((res) => {
       if (res.ok) setAuthed(true);
       else if (!isLoginPage) router.replace("/admin/login");
     }).finally(() => setChecking(false));

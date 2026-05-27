@@ -48,6 +48,15 @@ export async function POST(
       );
     }
 
+    const retryClaim = await prisma.payoutRelease.updateMany({
+      where: { id: failedPayout.id, status: "FAILED" },
+      data: { status: "QUEUED", failureReason: "Retry queued" },
+    });
+
+    if (retryClaim.count === 0) {
+      return NextResponse.json({ error: "Payout retry already queued" }, { status: 409 });
+    }
+
     const newRef = generateRef("PO");
     const payout = await prisma.payoutRelease.create({
       data: {
@@ -86,6 +95,10 @@ export async function POST(
 
       return NextResponse.json({ success: true, status: transfer.status });
     } catch {
+      await prisma.payoutRelease.update({
+        where: { id: failedPayout.id },
+        data: { status: "FAILED", failureReason: failedPayout.failureReason },
+      });
       await prisma.payoutRelease.update({
         where: { id: payout.id },
         data: { status: "FAILED", failureReason: "Transfer initiation failed on retry" },

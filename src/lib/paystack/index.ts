@@ -2,14 +2,21 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 
-const PAYSTACK_SECRET = () => process.env.PAYSTACK_SECRET_KEY ?? "";
 const PAYSTACK_BASE = "https://api.paystack.co";
+
+function paystackSecret(): string {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) {
+    throw new Error("PAYSTACK_SECRET_KEY environment variable is not set");
+  }
+  return secret;
+}
 
 async function paystackFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${PAYSTACK_BASE}${path}`, {
     ...options,
     headers: {
-      Authorization: `Bearer ${PAYSTACK_SECRET()}`,
+      Authorization: `Bearer ${paystackSecret()}`,
       "Content-Type": "application/json",
       ...options.headers,
     },

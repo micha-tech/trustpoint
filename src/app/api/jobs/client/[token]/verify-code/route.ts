@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyClientAccessToken } from "@/lib/security/tokens";
+import { generateClientVerificationToken, hashVerificationCode, verifyClientAccessToken } from "@/lib/security/tokens";
 
 export async function POST(
   _req: NextRequest,
@@ -36,7 +36,9 @@ export async function POST(
 
     const latestValid = allCodes.find((c) => c.expiresAt > new Date()) ?? null;
 
-    if (!latestValid || latestValid.code !== code) {
+    const codeHash = hashVerificationCode(jobId, normalizedEmail, code.trim());
+
+    if (!latestValid || latestValid.code !== codeHash) {
       if (latestValid) {
         await prisma.emailVerificationCode.update({
           where: { id: latestValid.id },
@@ -68,6 +70,7 @@ export async function POST(
 
     return NextResponse.json({
       verified: true,
+      clientVerificationToken: generateClientVerificationToken(jobId, normalizedEmail),
       job: {
         id: job.id,
         title: job.title,

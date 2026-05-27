@@ -54,6 +54,7 @@ type ViewState =
   | "verified";
 
 const STORAGE_KEY_PREFIX = "tp_verified_";
+const VERIFICATION_TOKEN_PREFIX = "tp_client_verification_";
 
 export default function ClientJobPage() {
   const { token } = useParams<{ token: string }>();
@@ -160,6 +161,7 @@ export default function ClientJobPage() {
       const body = await res.json();
       if (res.ok && body.verified) {
         sessionStorage.setItem(`${STORAGE_KEY_PREFIX}${token}`, "1");
+        sessionStorage.setItem(`${VERIFICATION_TOKEN_PREFIX}${token}`, body.clientVerificationToken);
         setData(body.job);
         toast.success("Email verified");
         setViewState("verified");
@@ -176,7 +178,11 @@ export default function ClientJobPage() {
   const handleApprove = async () => {
     setApproving(true);
     try {
-      const res = await fetch(`/api/jobs/client/${token}/approve`, { method: "POST" });
+      const clientVerification = sessionStorage.getItem(`${VERIFICATION_TOKEN_PREFIX}${token}`);
+      const res = await fetch(`/api/jobs/client/${token}/approve`, {
+        method: "POST",
+        headers: clientVerification ? { "X-Client-Verification": clientVerification } : {},
+      });
       if (res.ok) {
         toast.success("Payment released successfully");
         loadJob();
@@ -198,7 +204,12 @@ export default function ClientJobPage() {
     try {
       const res = await fetch(`/api/jobs/client/${token}/dispute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(sessionStorage.getItem(`${VERIFICATION_TOKEN_PREFIX}${token}`)
+            ? { "X-Client-Verification": sessionStorage.getItem(`${VERIFICATION_TOKEN_PREFIX}${token}`)! }
+            : {}),
+        },
         body: JSON.stringify({ reason: disputeReason.trim() }),
       });
       if (res.ok) {

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyClientAccessToken } from "@/lib/security/tokens";
+import { verifyClientAccessToken, verifyClientVerificationToken } from "@/lib/security/tokens";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 import { validateOrigin } from "@/lib/middleware/origin";
+
+function requireClientVerification(req: NextRequest, jobId: string, clientEmail: string | null) {
+  const token = req.headers.get("x-client-verification") ?? "";
+  const verified = verifyClientVerificationToken(token);
+  if (verified.jobId !== jobId) throw new Error("UNAUTHORIZED");
+  if (clientEmail && verified.email !== clientEmail.toLowerCase()) throw new Error("UNAUTHORIZED");
+}
 
 export async function POST(
   req: NextRequest,
@@ -23,6 +30,8 @@ export async function POST(
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
+
+    requireClientVerification(req, job.id, job.clientEmail);
 
     if (job.status === "DRAFT" || job.status === "CANCELLED" || job.status === "COMPLETED") {
       return NextResponse.json(
@@ -73,6 +82,9 @@ export async function POST(
     return NextResponse.json({ success: true, disputeId: disputeId! });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
+    if (msg === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Client verification required" }, { status: 403 });
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    if (!Number.isInteger(amount) || amount <= 0 || amount > 100_000_000) {
+      return NextResponse.json({ error: "Amount must be a positive whole number in kobo" }, { status: 400 });
+    }
+
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return NextResponse.json({ error: "Payment service unavailable. Try again later." }, { status: 500 });
     }
@@ -33,9 +37,6 @@ export async function POST(req: NextRequest) {
     const ref = generateJobRef();
     const fee = Math.round(amount * 0.05);
     const payRef = generateRef("PAY");
-
-    const clientToken = generateClientAccessToken(""); // id placeholder, regenerated after create
-    const clientUrl = `${req.nextUrl.origin}/client/job/${clientToken}`;
 
     const job = await prisma.job.create({
       data: {
@@ -47,7 +48,6 @@ export async function POST(req: NextRequest) {
         artisanId: user.id,
         clientId: user.id,
         clientEmail: clientEmail?.trim().toLowerCase(),
-        clientToken,
         expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
       },
     });
@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
         ref: job.ref,
         status: "DRAFT",
         clientUrl: finalClientUrl,
-        clientToken: finalToken,
         virtualAccount,
         paymentError: "Payment link generation failed. You can try again from the job page.",
       }, { status: 201 });
@@ -123,7 +122,6 @@ export async function POST(req: NextRequest) {
       status: "PENDING_PAYMENT",
       paymentLink: paymentLink.authorizationUrl,
       clientUrl: finalClientUrl,
-      clientToken: finalToken,
       reference: payRef,
       virtualAccount,
     }, { status: 201 });

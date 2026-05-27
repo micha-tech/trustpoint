@@ -90,8 +90,6 @@ async function handleChargeSuccess(data: any) {
   });
   if (!paymentRef) throw new Error(`Unknown payment reference: ${reference}`);
 
-  if (paymentRef.status === "success") return;
-
   if (amount !== paymentRef.amount) {
     throw new Error(
       `Amount mismatch for ${reference}: expected ${paymentRef.amount}, got ${amount}`
@@ -100,8 +98,8 @@ async function handleChargeSuccess(data: any) {
 
   const jobId = paymentRef.jobId;
 
-  await prisma.paymentReference.update({
-    where: { id: paymentRef.id },
+  const updated = await prisma.paymentReference.updateMany({
+    where: { id: paymentRef.id, status: "pending" },
     data: {
       status: "success",
       channel,
@@ -109,6 +107,8 @@ async function handleChargeSuccess(data: any) {
       metadata: { ...(paymentRef.metadata as any), paystackData: data },
     },
   });
+
+  if (updated.count === 0) return;
 
   await fundEscrow(jobId, amount);
 
@@ -136,10 +136,8 @@ async function handleChargeFailed(data: any) {
     where: { reference },
   });
   if (!paymentRef) throw new Error(`Unknown payment reference: ${reference}`);
-  if (paymentRef.status !== "pending") return;
-
-  await prisma.paymentReference.update({
-    where: { id: paymentRef.id },
+  await prisma.paymentReference.updateMany({
+    where: { id: paymentRef.id, status: "pending" },
     data: { status: "failed" },
   });
 }

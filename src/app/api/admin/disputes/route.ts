@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-const ADMIN_SECRET = () => process.env.DISPUTE_SECRET ?? "";
-
-function verifyAdmin(req: NextRequest): boolean {
-  const auth = req.headers.get("authorization")?.replace("Bearer ", "");
-  return auth === ADMIN_SECRET();
-}
+import { verifyAdminSecret } from "@/lib/security/admin";
 
 export async function GET(req: NextRequest) {
   try {
-    if (!verifyAdmin(req)) {
+    if (!verifyAdminSecret(req)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

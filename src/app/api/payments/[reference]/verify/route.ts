@@ -29,6 +29,10 @@ export async function POST(
       return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
     }
 
+    if (data.amount !== paymentRef.amount) {
+      return NextResponse.json({ error: "Payment amount mismatch" }, { status: 400 });
+    }
+
     const jobId = paymentRef.jobId;
 
     const updated = await prisma.paymentReference.updateMany({

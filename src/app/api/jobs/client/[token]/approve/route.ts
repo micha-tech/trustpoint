@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyClientAccessToken } from "@/lib/security/tokens";
-import { writeLedgerEntry } from "@/lib/services/ledger";
+import { verifyClientAccessToken, verifyClientVerificationToken, generateRef } from "@/lib/security/tokens";
+import { signLedgerEntry } from "@/lib/security/webhooks";
 import { validateOrigin } from "@/lib/middleware/origin";
 import { initiateTransfer } from "@/lib/paystack";
-import { generateRef } from "@/lib/security/tokens";
+import type { Prisma } from "@prisma/client";
+
+function requireClientVerification(req: NextRequest, jobId: string, clientEmail: string | null) {
+  const token = req.headers.get("x-client-verification") ?? "";
+  const verified = verifyClientVerificationToken(token);
+  if (verified.jobId !== jobId) throw new Error("UNAUTHORIZED");
+  if (clientEmail && verified.email !== clientEmail.toLowerCase()) throw new Error("UNAUTHORIZED");
+}
 
 export async function POST(
   req: NextRequest,
@@ -29,6 +36,8 @@ export async function POST(
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
+    requireClientVerification(req, job.id, job.clientEmail);
+
     if (job.status !== "COMPLETED") {
       return NextResponse.json(
         { error: "Artisan has not marked this job as complete yet" },
@@ -52,40 +61,58 @@ export async function POST(
     }
 
     const releaseAmount = Math.min(job.amount, job.escrow.pendingAmount);
+    if (releaseAmount <= 0) {
+      return NextResponse.json({ error: "Escrow has no releasable funds" }, { status: 400 });
+    }
+
+    const payoutRef = generateRef("PO");
+    const ledgerData = JSON.stringify({
+      jobId: job.id, event: "job.approved", actorId: job.clientId, amount: releaseAmount, reference: `APPROVE-${job.ref}`,
+    });
+    const ledgerSignature = signLedgerEntry(ledgerData);
 
     await prisma.$transaction(async (tx) => {
-      await tx.escrowState.update({
-        where: { jobId: job.id },
+      const jobClaim = await tx.job.updateMany({
+        where: { id: job.id, status: "COMPLETED", approvedAt: null },
+        data: { approvedAt: new Date() },
+      });
+      if (jobClaim.count === 0) throw new Error("Job has already been approved");
+
+      const escrowClaim = await tx.escrowState.updateMany({
+        where: {
+          jobId: job.id,
+          status: { in: ["FUNDED", "PARTIALLY_RELEASED"] },
+          pendingAmount: { gte: releaseAmount },
+        },
         data: {
           status: "RELEASED",
           releasedAmount: { increment: releaseAmount },
           pendingAmount: { decrement: releaseAmount },
         },
       });
-      await tx.job.update({
-        where: { id: job.id },
-        data: { status: "COMPLETED", approvedAt: new Date() },
+      if (escrowClaim.count === 0) throw new Error("Escrow is not in a releasable state");
+
+      await tx.payoutRelease.create({
+        data: {
+          jobId: job.id,
+          amount: releaseAmount,
+          status: "PENDING",
+          recipientCode: artisanProfile.recipientCode!,
+          reference: payoutRef,
+        },
       });
-    });
 
-    await writeLedgerEntry({
-      jobId: job.id,
-      event: "job.approved",
-      actorId: job.clientId,
-      amount: releaseAmount,
-      reference: `APPROVE-${job.ref}`,
-    });
-
-    const payoutRef = generateRef("PO");
-
-    await prisma.payoutRelease.create({
-      data: {
-        jobId: job.id,
-        amount: releaseAmount,
-        status: "PENDING",
-        recipientCode: artisanProfile.recipientCode,
-        reference: payoutRef,
-      },
+      await tx.ledgerEntry.create({
+        data: {
+          jobId: job.id,
+          event: "job.approved",
+          actorId: job.clientId,
+          amount: releaseAmount,
+          reference: `APPROVE-${job.ref}`,
+          signature: ledgerSignature,
+          metadata: {} as Prisma.InputJsonValue,
+        },
+      });
     });
 
     try {
@@ -108,18 +135,28 @@ export async function POST(
         where: { reference: payoutRef },
         data: { status: "FAILED", failureReason: "Transfer initiation failed" },
       });
-      await writeLedgerEntry({
-        jobId: job.id,
-        event: "payout.failed",
-        amount: releaseAmount,
-        reference: payoutRef,
-        metadata: { reason: "Transfer initiation failed" },
+      const failLedgerData = JSON.stringify({
+        jobId: job.id, event: "payout.failed", amount: releaseAmount, reference: payoutRef, metadata: { reason: "Transfer initiation failed" },
+      });
+      const failLedgerSignature = signLedgerEntry(failLedgerData);
+      await prisma.ledgerEntry.create({
+        data: {
+          jobId: job.id,
+          event: "payout.failed",
+          amount: releaseAmount,
+          reference: payoutRef,
+          signature: failLedgerSignature,
+          metadata: { reason: "Transfer initiation failed" } as Prisma.InputJsonValue,
+        },
       });
     }
 
     return NextResponse.json({ success: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
+    if (msg === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Client verification required" }, { status: 403 });
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

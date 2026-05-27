@@ -226,7 +226,7 @@ model EmailVerificationCode {
   id        String    @id @default(cuid())
   jobId     String
   email     String    // normalized to lowercase
-  code      String    // 6-digit code
+  code      String    // HMAC hash of 6-digit code
   expiresAt DateTime
   verifiedAt DateTime?
   attempts  Int       @default(0)

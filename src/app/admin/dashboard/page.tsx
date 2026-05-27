@@ -21,10 +21,7 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError(false);
     try {
-      const token = sessionStorage.getItem("admin_token");
-      const res = await fetch("/api/admin/fees", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/admin/fees");
       if (!res.ok) throw new Error();
       setData(await res.json());
     } catch {

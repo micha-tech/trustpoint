@@ -22,14 +22,15 @@ export default function AdminLoginPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/admin/fees", {
-        headers: { Authorization: `Bearer ${secret.trim()}` },
+      const res = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret: secret.trim() }),
       });
       if (!res.ok) {
         setError("Invalid secret. Try again.");
         return;
       }
-      sessionStorage.setItem("admin_token", secret.trim());
       router.replace("/admin/dashboard");
     } catch {
       setError("Could not connect. Try again.");
