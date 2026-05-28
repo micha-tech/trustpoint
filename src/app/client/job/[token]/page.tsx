@@ -19,13 +19,25 @@ import {
   X,
   Mail,
   KeyRound,
+  ListChecks,
+  Paperclip,
+  Eye,
 } from "lucide-react";
+import { getMilestoneLabel, getMilestoneStyle } from "@/lib/job-status";
 
 type EscrowState = {
   status: string;
   totalAmount: number;
   releasedAmount: number;
   pendingAmount: number;
+};
+
+type ClientMilestone = {
+  id: string;
+  title: string;
+  amount: number;
+  status: string;
+  sortOrder: number;
 };
 
 type ClientJob = {
@@ -42,6 +54,7 @@ type ClientJob = {
   approvedAt: string | null;
   artisan: { name: string | null; phone: string | null };
   escrow: EscrowState | null;
+  milestones: ClientMilestone[];
   createdAt: string;
 };
 
@@ -64,13 +77,23 @@ export default function ClientJobPage() {
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [approving, setApproving] = useState(false);
+  const [approving, setApproving] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [showDisputeConfirm, setShowDisputeConfirm] = useState(false);
   const [paystackRef, setPaystackRef] = useState<string | null>(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [clientEvidence, setClientEvidence] = useState<{ id: string; fileName: string; fileType: string; fileSize: number; description: string | null; createdAt: string }[]>([]);
+
+  useEffect(() => {
+    if (viewState === "verified") {
+      fetch(`/api/jobs/client/${token}/evidence`)
+        .then((r) => r.ok ? r.json() : [])
+        .then(setClientEvidence)
+        .catch(() => {});
+    }
+  }, [viewState, token]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -175,16 +198,16 @@ export default function ClientJobPage() {
     }
   };
 
-  const handleApprove = async () => {
-    setApproving(true);
+  const handleApproveMilestone = async (milestoneId: string) => {
+    setApproving(milestoneId);
     try {
       const clientVerification = sessionStorage.getItem(`${VERIFICATION_TOKEN_PREFIX}${token}`);
-      const res = await fetch(`/api/jobs/client/${token}/approve`, {
+      const res = await fetch(`/api/jobs/client/${token}/milestones/${milestoneId}/approve`, {
         method: "POST",
         headers: clientVerification ? { "X-Client-Verification": clientVerification } : {},
       });
       if (res.ok) {
-        toast.success("Payment released successfully");
+        toast.success("Payment released for this milestone");
         loadJob();
       } else {
         const err = await res.json();
@@ -193,7 +216,7 @@ export default function ClientJobPage() {
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
-      setApproving(false);
+      setApproving(null);
     }
   };
 
@@ -228,18 +251,19 @@ export default function ClientJobPage() {
     }
   };
 
-  const getJobViewState = (): "payment" | "success" | "approval" | "released" | "dispute" | "error" => {
+  const getJobViewState = useCallback((): "payment" | "success" | "approval" | "released" | "dispute" | "mixed" | "error" => {
     if (!data) return "error";
-    if (data.status === "PENDING_PAYMENT") return "payment";
-    if (data.status === "COMPLETED" && data.approvedAt) return "released";
-    if (data.status === "COMPLETED" && !data.approvedAt) return "approval";
     if (data.status === "DISPUTED") return "dispute";
-    if (data.escrow?.status === "FUNDED") return "success";
-    if (data.status === "ACTIVE" || data.status === "IN_PROGRESS") return "success";
+    if (data.status === "COMPLETED" && data.approvedAt) return "released";
+    const hasCompleted = data.milestones?.some((m) => m.status === "COMPLETED");
+    const allReleased = data.milestones?.every((m) => ["APPROVED", "RELEASED"].includes(m.status));
+    if (allReleased) return "released";
+    if (hasCompleted) return "approval";
+    if (data.escrow?.status === "FUNDED" || data.status === "ACTIVE" || data.status === "IN_PROGRESS") return "success";
     return "payment";
-  };
+  }, [data]);
 
-  const jobViewState = useMemo(getJobViewState, [data]);
+  const jobViewState = useMemo(getJobViewState, [getJobViewState]);
 
   const formattedAmount = useMemo(
     () => data ? `₦${((data.amount + data.fee) / 100).toLocaleString()}` : "",
@@ -458,7 +482,7 @@ export default function ClientJobPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount</span>
+                  <span className="text-muted-foreground">Total</span>
                   <span className="font-semibold text-foreground">{formattedAmount}</span>
                 </div>
                 {formattedDate && (
@@ -470,6 +494,99 @@ export default function ClientJobPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Milestones */}
+          {data.milestones && data.milestones.length > 0 && (
+            <Card className="mb-4">
+              <CardContent className="p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <ListChecks className="size-4 text-brand-600" />
+                  <h3 className="text-sm font-medium text-foreground">Milestones</h3>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {data.milestones.filter((m) => ["APPROVED", "RELEASED"].includes(m.status)).length}/{data.milestones.length} released
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {data.milestones.map((m) => {
+                    const needsApproval = m.status === "COMPLETED";
+                    return (
+                      <div
+                        key={m.id}
+                        className={`rounded-lg border p-3 ${
+                          needsApproval ? "border-amber-200 bg-amber-50/50" :
+                          m.status === "APPROVED" || m.status === "RELEASED" ? "border-emerald-200 bg-emerald-50/50" :
+                          ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{m.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              ₦{(m.amount / 100).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${getMilestoneStyle(m.status)}`}>
+                              {getMilestoneLabel(m.status)}
+                            </span>
+                          </div>
+                        </div>
+                        {needsApproval && jobViewState !== "dispute" && (
+                          <Button
+                            onClick={() => handleApproveMilestone(m.id)}
+                            disabled={approving === m.id}
+                            size="sm"
+                            className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            {approving === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                            Release payment for this milestone
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Evidence from artisan */}
+          {clientEvidence.length > 0 && (
+            <Card className="mb-4">
+              <CardContent className="p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <Paperclip className="size-4 text-brand-600" />
+                  <h3 className="text-sm font-medium text-foreground">Evidence</h3>
+                  <span className="ml-auto text-xs text-muted-foreground">{clientEvidence.length} file{clientEvidence.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="space-y-2">
+                  {clientEvidence.map((ev) => {
+                    const isImage = ev.fileType.startsWith("image/");
+                    const fileUrl = `/api/jobs/client/${token}/evidence/${ev.id}/file`;
+                    return (
+                      <a
+                        key={ev.id}
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                          {isImage ? <Eye className="size-4" /> : <Paperclip className="size-4" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">{ev.fileName}</p>
+                          {ev.description && <p className="truncate text-xs text-muted-foreground">{ev.description}</p>}
+                          <p className="text-xs text-muted-foreground">{(ev.fileSize / 1024).toFixed(0)} KB</p>
+                        </div>
+                        <span className="shrink-0 text-xs text-brand-600">View</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {jobViewState === "payment" && (
             <Card className="mb-4 border-brand-200">
@@ -518,35 +635,72 @@ export default function ClientJobPage() {
             </Card>
           )}
 
-          {jobViewState === "approval" && (
-            <Card className="mb-4 border-amber-200 bg-amber-50">
+          {/* Dispute section — only shown when viewing a disputed job */}
+          {jobViewState === "dispute" && (
+            <Card className="mb-4 border-orange-200">
+              <CardContent className="space-y-4 p-5">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                    <AlertTriangle className="size-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-medium text-orange-900">This job has been placed under review</h2>
+                    <p className="text-xs text-orange-700">
+                      TrustPoint will review the issue before payment is released.
+                    </p>
+                  </div>
+                </div>
+                {!data.approvedAt && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="dispute-reason">Briefly describe the issue</Label>
+                      <textarea
+                        id="dispute-reason"
+                        rows={3}
+                        maxLength={500}
+                        placeholder="Briefly describe the issue."
+                        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        value={disputeReason}
+                        onChange={(e) => setDisputeReason(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => setShowDisputeConfirm(true)}
+                      disabled={submittingDispute || !disputeReason.trim()}
+                      className="w-full"
+                    >
+                      {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
+                      Submit Issue
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Report an Issue — always available when milestones need approval */}
+          {jobViewState === "approval" && data.milestones?.some((m) => m.status === "COMPLETED") && (
+            <Card className="mb-4 border-amber-200">
               <CardContent className="space-y-4 p-5">
                 <div className="flex items-center gap-2">
                   <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-600">
                     <Clock className="size-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-medium text-amber-900">Work has been submitted</h2>
-                    <p className="text-xs text-amber-700">Review the work before releasing payment.</p>
+                    <h2 className="text-sm font-medium text-amber-900">Milestones awaiting approval</h2>
+                    <p className="text-xs text-amber-700">Review each milestone and release payment when satisfied.</p>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Button onClick={handleApprove} disabled={approving} className="bg-emerald-600 hover:bg-emerald-700">
-                    {approving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-                    Looks good, pay now
-                  </Button>
+                {!showDisputeForm ? (
                   <Button
                     variant="outline"
                     onClick={() => setShowDisputeForm(true)}
-                    className="text-destructive border-destructive/30 hover:bg-destructive/5"
-                    aria-expanded={showDisputeForm}
-                    aria-controls="approval-dispute-form"
+                    className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
                   >
                     <AlertTriangle className="size-4" />
                     Report an Issue
                   </Button>
-                </div>
-                {showDisputeForm && (
+                ) : (
                   <div id="approval-dispute-form" className="space-y-3">
                     <div className="space-y-2">
                       <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
@@ -598,9 +752,7 @@ export default function ClientJobPage() {
                     This will pause the payment process. TrustPoint will review both sides before releasing funds.
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowDisputeConfirm(false)} className="flex-1">
-                      Cancel
-                    </Button>
+                    <Button variant="outline" onClick={() => setShowDisputeConfirm(false)} className="flex-1">Cancel</Button>
                     <Button onClick={confirmDispute} disabled={submittingDispute} className="flex-1">
                       {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : "Submit Issue"}
                     </Button>
@@ -618,50 +770,8 @@ export default function ClientJobPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-emerald-900">All settled</h2>
-                  <p className="mt-1 text-sm text-emerald-700">Payment released. All done.</p>
+                  <p className="mt-1 text-sm text-emerald-700">All milestones released. All done.</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {jobViewState === "dispute" && (
-            <Card className="mb-4 border-orange-200">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-                    <AlertTriangle className="size-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-medium text-orange-900">This job has been placed under review</h2>
-                    <p className="text-xs text-orange-700">
-                      TrustPoint will review the issue before payment is released.
-                    </p>
-                  </div>
-                </div>
-                {!data.approvedAt && (
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="dispute-reason">Briefly describe the issue</Label>
-                      <textarea
-                        id="dispute-reason"
-                        rows={3}
-                        maxLength={500}
-                        placeholder="Briefly describe the issue."
-                        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={disputeReason}
-                        onChange={(e) => setDisputeReason(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      onClick={() => setShowDisputeConfirm(true)}
-                      disabled={submittingDispute || !disputeReason.trim()}
-                      className="w-full"
-                    >
-                      {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
-                      Submit Issue
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}

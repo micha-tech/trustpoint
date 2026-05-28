@@ -29,6 +29,7 @@ export async function POST(
       include: {
         escrow: true,
         artisan: { include: { artisanProfile: true } },
+        milestones: true,
       },
     });
 
@@ -60,7 +61,23 @@ export async function POST(
       );
     }
 
-    const releaseAmount = Math.min(job.amount, job.escrow.pendingAmount);
+    // If job has milestones, approve all completed milestones
+    const hasMilestones = job.milestones && job.milestones.length > 0;
+    const completedMilestones = hasMilestones
+      ? job.milestones.filter((m) => m.status === "COMPLETED")
+      : [];
+
+    if (hasMilestones && completedMilestones.length === 0) {
+      return NextResponse.json(
+        { error: "No completed milestones to approve" },
+        { status: 400 }
+      );
+    }
+
+    const releaseAmount = hasMilestones
+      ? completedMilestones.reduce((sum, m) => sum + m.amount, 0)
+      : Math.min(job.amount, job.escrow.pendingAmount);
+
     if (releaseAmount <= 0) {
       return NextResponse.json({ error: "Escrow has no releasable funds" }, { status: 400 });
     }
@@ -85,12 +102,19 @@ export async function POST(
           pendingAmount: { gte: releaseAmount },
         },
         data: {
-          status: "RELEASED",
+          status: releaseAmount >= job.escrow!.pendingAmount ? "RELEASED" : "PARTIALLY_RELEASED",
           releasedAmount: { increment: releaseAmount },
           pendingAmount: { decrement: releaseAmount },
         },
       });
       if (escrowClaim.count === 0) throw new Error("Escrow is not in a releasable state");
+
+      if (hasMilestones) {
+        await tx.milestone.updateMany({
+          where: { id: { in: completedMilestones.map((m) => m.id) }, status: "COMPLETED" },
+          data: { status: "APPROVED" },
+        });
+      }
 
       await tx.payoutRelease.create({
         data: {
@@ -130,6 +154,12 @@ export async function POST(
           completedAt: transfer.status === "success" ? new Date() : null,
         },
       });
+      if (transfer.status === "success" && hasMilestones) {
+        await prisma.milestone.updateMany({
+          where: { id: { in: completedMilestones.map((m) => m.id) } },
+          data: { status: "RELEASED" },
+        });
+      }
     } catch {
       await prisma.payoutRelease.update({
         where: { reference: payoutRef },

@@ -20,6 +20,7 @@ export async function GET(
         client: { select: { name: true, email: true, phone: true } },
         artisan: { select: { name: true, phone: true } },
         disputes: { orderBy: { createdAt: "desc" }, take: 1 },
+        milestones: { orderBy: { sortOrder: "asc" } },
       },
     });
 

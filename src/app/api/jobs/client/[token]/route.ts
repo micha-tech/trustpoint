@@ -27,6 +27,7 @@ export async function GET(
         createdAt: true,
         artisan: { select: { name: true, phone: true } },
         escrow: true,
+        milestones: { orderBy: { sortOrder: "asc" } },
       },
     });
 
@@ -49,6 +50,7 @@ export async function GET(
       approvedAt: j.approvedAt ?? null,
       artisan: job.artisan,
       escrow: job.escrow,
+      milestones: job.milestones,
       createdAt: job.createdAt,
     });
   } catch {

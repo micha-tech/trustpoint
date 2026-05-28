@@ -18,7 +18,7 @@ export async function POST(
 
     const job = await prisma.job.findFirst({
       where: { id, artisanId: user.id },
-      include: { escrow: true, artisan: { select: { name: true } } },
+      include: { escrow: true, artisan: { select: { name: true } }, milestones: true },
     });
 
     if (!job) {
@@ -38,6 +38,14 @@ export async function POST(
         { error: "Payment has not been confirmed yet" },
         { status: 400 }
       );
+    }
+
+    // Milestone-aware: mark all pending milestones as COMPLETED
+    if (job.milestones && job.milestones.length > 0) {
+      await prisma.milestone.updateMany({
+        where: { jobId: job.id, status: { in: ["PENDING", "IN_PROGRESS"] } },
+        data: { status: "COMPLETED" },
+      });
     }
 
     await prisma.job.update({

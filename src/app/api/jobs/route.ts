@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
 
     const user = await getUserFromToken(token);
 
-    // Ensure user has an artisan profile — auto-create if missing
     await prisma.artisanProfile.upsert({
       where: { userId: user.id },
       create: { userId: user.id },
@@ -19,15 +18,31 @@ export async function POST(req: NextRequest) {
     });
 
     const body = await req.json();
+    const { title, description, milestones, clientEmail, expectedCompletionDate } = body;
 
-    const { title, description, amount, clientEmail, expectedCompletionDate } = body;
-
-    if (!title || !amount) {
+    if (!title) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    if (!Number.isInteger(amount) || amount <= 0 || amount > 100_000_000) {
-      return NextResponse.json({ error: "Amount must be a positive whole number in kobo" }, { status: 400 });
+    let milestoneInputs: { title: string; amount: number }[];
+    if (milestones && Array.isArray(milestones) && milestones.length > 0) {
+      milestoneInputs = milestones.map((m: { title?: string; amount?: number }, i: number) => {
+        if (!m.title || !m.amount || !Number.isInteger(m.amount) || m.amount <= 0) {
+          throw new Error(`Milestone ${i + 1} is invalid — each milestone needs a title and a positive whole number amount in kobo`);
+        }
+        return { title: m.title, amount: m.amount };
+      });
+    } else {
+      const amount = body.amount;
+      if (!amount || !Number.isInteger(amount) || amount <= 0 || amount > 100_000_000) {
+        return NextResponse.json({ error: "Amount must be a positive whole number in kobo" }, { status: 400 });
+      }
+      milestoneInputs = [{ title: "Full payment", amount }];
+    }
+
+    const totalAmount = milestoneInputs.reduce((sum, m) => sum + m.amount, 0);
+    if (totalAmount <= 0 || totalAmount > 100_000_000) {
+      return NextResponse.json({ error: "Total amount must be between 1 and 100,000,000 kobo" }, { status: 400 });
     }
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -35,24 +50,30 @@ export async function POST(req: NextRequest) {
     }
 
     const ref = generateJobRef();
-    const fee = Math.round(amount * 0.05);
+    const fee = Math.round(totalAmount * 0.05);
     const payRef = generateRef("PAY");
 
     const job = await prisma.job.create({
       data: {
         title,
-        description,
-        amount,
+        description: description ?? "",
+        amount: totalAmount,
         fee,
         ref,
         artisanId: user.id,
         clientId: user.id,
         clientEmail: clientEmail?.trim().toLowerCase(),
         expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
+        milestones: {
+          create: milestoneInputs.map((m, i) => ({
+            title: m.title,
+            amount: m.amount,
+            sortOrder: i,
+          })),
+        },
       },
     });
 
-    // Regenerate token with real jobId, persist it
     const finalToken = generateClientAccessToken(job.id);
     await prisma.job.update({
       where: { id: job.id },
@@ -75,13 +96,12 @@ export async function POST(req: NextRequest) {
     let paymentLink;
     try {
       paymentLink = await createPaymentLink({
-        amount: amount + fee,
+        amount: totalAmount + fee,
         email: user.email ?? "",
         reference: payRef,
         callbackUrl: finalClientUrl,
       });
     } catch {
-      // Payment link failed — save job so artisan can retry
       await prisma.job.update({
         where: { id: job.id },
         data: { status: "DRAFT" },
@@ -103,7 +123,7 @@ export async function POST(req: NextRequest) {
     await recordPaymentReference({
       jobId: job.id,
       reference: payRef,
-      amount: amount + fee,
+      amount: totalAmount + fee,
       metadata: { authorizationUrl: paymentLink.authorizationUrl },
     });
 
@@ -112,14 +132,13 @@ export async function POST(req: NextRequest) {
       data: { status: "PENDING_PAYMENT" },
     });
 
+    const created = await prisma.job.findUnique({
+      where: { id: job.id },
+      include: { milestones: { orderBy: { sortOrder: "asc" } } },
+    });
+
     return NextResponse.json({
-      id: job.id,
-      title: job.title,
-      description: job.description,
-      amount: job.amount,
-      fee: job.fee,
-      ref: job.ref,
-      status: "PENDING_PAYMENT",
+      ...created,
       paymentLink: paymentLink.authorizationUrl,
       clientUrl: finalClientUrl,
       reference: payRef,

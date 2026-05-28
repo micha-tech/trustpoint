@@ -25,6 +25,7 @@ model User {
   artisanJobs    Job[]         @relation("ArtisanJobs")
   approvals      Approval[]
   disputes       Dispute[]
+  evidence       Evidence[]
   notifications  Notification[]
 }
 
@@ -78,6 +79,7 @@ model Job {
   artisan     User      @relation("ArtisanJobs", fields: [artisanId], references: [id])
 
   milestones  Milestone[]
+  evidence    Evidence[]
   escrow      EscrowState?
   disputes    Dispute[]
 
@@ -363,6 +365,28 @@ model Notification {
 
   @@index([userId])
   @@index([status])
+}
+
+// ──────────────────────────────────────────
+// EVIDENCE (artisan-uploaded files for client)
+// ──────────────────────────────────────────
+
+model Evidence {
+  id           String   @id @default(cuid())
+  jobId        String
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  milestoneId  String?
+  fileName     String
+  fileType     String   // MIME type
+  fileSize     Int      // bytes
+  data         Bytes    // file content
+  description  String?
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([jobId])
+  @@index([milestoneId])
 }
 
 // ──────────────────────────────────────────
