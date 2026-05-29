@@ -26,8 +26,7 @@ export function generateRef(prefix: string): string {
 }
 
 export function generateClientAccessToken(jobId: string): string {
-  const exp = Date.now() + 90 * 24 * 60 * 60 * 1000;
-  const payload = { jobId, action: "client_access", exp };
+  const payload = { jobId, action: "client_access" };
   const data = JSON.stringify(payload);
   const hmac = createHmac("sha256", signingSecret()).update(data).digest("hex");
   return Buffer.from(data).toString("base64url") + "." + hmac;
@@ -50,7 +49,6 @@ export function verifyClientAccessToken(token: string): { jobId: string } {
   if (!safeCompare(sig, expected)) throw new Error("Invalid token signature");
   const payload = JSON.parse(data);
   if (payload.action !== "client_access") throw new Error("Invalid token action");
-  if (Date.now() > payload.exp) throw new Error("Token expired");
   return { jobId: payload.jobId };
 }
 

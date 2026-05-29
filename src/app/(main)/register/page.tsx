@@ -144,7 +144,7 @@ export default function RegisterPage() {
             <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="mx-auto h-10 w-auto" priority />
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start protecting your payments</p>
+          <p className="mt-1 text-sm text-muted-foreground">Start protecting your transactions</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -219,8 +219,8 @@ export default function RegisterPage() {
               />
               <span className="text-xs text-muted-foreground">
                 I agree to the{" "}
-                <span className="text-brand-600">Terms of Service</span> and{" "}
-                <span className="text-brand-600">Privacy Policy</span>
+                <Link href="/terms" className="text-brand-600 hover:text-brand-700">Terms of Service</Link> and{" "}
+                <Link href="/privacy" className="text-brand-600 hover:text-brand-700">Privacy Policy</Link>
               </span>
             </label>
 

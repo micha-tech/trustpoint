@@ -55,7 +55,7 @@ export default function AdminDisputesPage() {
   if (error) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 px-4">
-        <p className="text-sm text-muted-foreground">Unable to load disputes.</p>
+        <p className="text-sm text-muted-foreground">Unable to load reviews.</p>
         <Button variant="outline" onClick={load}>
           <RefreshCcw className="size-4" />
           Try Again
@@ -70,8 +70,8 @@ export default function AdminDisputesPage() {
         <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50">
           <CheckCircle2 className="size-6 text-emerald-600" />
         </div>
-        <p className="text-sm font-medium text-foreground">No disputes</p>
-        <p className="text-sm text-muted-foreground">All clear — no disputes have been raised.</p>
+        <p className="text-sm font-medium text-foreground">No reviews</p>
+        <p className="text-sm text-muted-foreground">All clear — no issues have been raised.</p>
       </div>
     );
   }
@@ -80,7 +80,7 @@ export default function AdminDisputesPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
       <div className="mb-6 flex items-center gap-2">
         <Scale className="size-5 text-brand-600" />
-        <h1 className="text-lg font-bold text-foreground">Disputes</h1>
+        <h1 className="text-lg font-bold text-foreground">Reviews</h1>
         <span className="ml-auto rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
           {disputes.filter((d) => d.status === "OPEN" || d.status === "UNDER_REVIEW").length} open
         </span>

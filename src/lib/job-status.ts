@@ -8,7 +8,7 @@ export function getStatusLabel(status: string, approvedAt?: string | null): stri
     ACTIVE: "Payment secured",
     IN_PROGRESS: "In progress",
     CANCELLED: "Cancelled",
-    DISPUTED: "Needs review",
+    DISPUTED: "Under review",
   };
   return labels[status] ?? status.replace("_", " ");
 }
@@ -34,8 +34,8 @@ export function getMilestoneLabel(status: string): string {
     IN_PROGRESS: "In progress",
     COMPLETED: "Awaiting approval",
     APPROVED: "Approved",
-    RELEASED: "Paid out",
-    DISPUTED: "Disputed",
+    RELEASED: "Settled",
+    DISPUTED: "Under review",
   };
   return labels[status] ?? status.replace("_", " ");
 }

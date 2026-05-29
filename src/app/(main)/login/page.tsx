@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && authUser && !signedIn) {
@@ -125,8 +127,8 @@ export default function LoginPage() {
           <Link href="/" className="inline-block transition-opacity hover:opacity-80">
             <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="mx-auto h-10 w-auto" priority />
           </Link>
-          <h1 className="mt-5 text-xl font-bold text-foreground">Secure payments for real-world jobs</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to manage your jobs</p>
+          <h1 className="mt-5 text-xl font-bold text-foreground">Protected payments for real-world work</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to your workspace</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -147,7 +149,20 @@ export default function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   href="#"
-                  onClick={(e) => { e.preventDefault(); toast.error("Password reset coming soon. Contact support."); }}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    if (!email.trim()) { toast.error("Enter your email first."); return; }
+                    if (!auth) { toast.error("Unable to send reset email. Try again."); return; }
+                    setResetting(true);
+                    try {
+                      await sendPasswordResetEmail(auth, email.trim());
+                      toast.success("Reset link sent. Check your inbox.");
+                    } catch {
+                      toast.error("Could not send reset email. Check the email is correct.");
+                    } finally {
+                      setResetting(false);
+                    }
+                  }}
                   className="text-xs text-brand-600 hover:text-brand-700"
                 >
                   Forgot password?

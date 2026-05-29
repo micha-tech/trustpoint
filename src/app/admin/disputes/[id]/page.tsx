@@ -101,10 +101,10 @@ export default function AdminDisputeDetailPage() {
   if (error || !dispute) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 px-4">
-        <p className="text-sm text-muted-foreground">Dispute not found.</p>
+        <p className="text-sm text-muted-foreground">Review not found.</p>
         <Button variant="outline" onClick={() => router.push("/admin/disputes")}>
           <ArrowLeft className="size-4" />
-          Back to Disputes
+          Back to Reviews
         </Button>
       </div>
     );
@@ -119,7 +119,7 @@ export default function AdminDisputeDetailPage() {
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Disputes
+        Reviews
       </button>
 
       <div className="mb-6">
@@ -127,7 +127,7 @@ export default function AdminDisputeDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <Scale className="size-5 text-brand-600" />
-              <h1 className="text-lg font-bold text-foreground">Dispute</h1>
+              <h1 className="text-lg font-bold text-foreground">Review</h1>
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">{dispute.job.ref}</p>
           </div>
@@ -203,7 +203,7 @@ export default function AdminDisputeDetailPage() {
 
       {!isResolved && (
         <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Resolve Dispute</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Resolve</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
               onClick={() => setConfirm("ARTISAN")}

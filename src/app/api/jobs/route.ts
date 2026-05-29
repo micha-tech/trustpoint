@@ -158,13 +158,23 @@ export async function GET(req: NextRequest) {
 
     const user = await getUserFromToken(token);
 
-    const jobs = await prisma.job.findMany({
-      where: { artisanId: user.id },
-      include: { escrow: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const url = new URL(req.url);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
+    const skip = (page - 1) * limit;
 
-    return NextResponse.json(jobs);
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where: { artisanId: user.id },
+        include: { escrow: true },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.job.count({ where: { artisanId: user.id } }),
+    ]);
+
+    return NextResponse.json({ jobs, total, page, limit });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ error: msg }, { status: 500 });

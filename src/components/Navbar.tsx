@@ -38,8 +38,8 @@ export default function Navbar() {
   if (!user || isAuthPage) return null;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/75 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/82 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80">
           <Image src="/logo.png" alt="TrustPoint" width={64} height={32} className="h-8 w-auto" priority />
         </Link>
@@ -63,7 +63,7 @@ export default function Navbar() {
                 href={link.href}
                 className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                   active
-                    ? "bg-brand-50 text-brand-700 shadow-sm"
+                    ? "bg-brand-50 text-brand-800 shadow-sm"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
@@ -79,7 +79,7 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <div className="border-t border-border bg-background px-4 pb-4 pt-2 sm:hidden">
+        <div className="border-t border-border/70 bg-background/95 px-4 pb-4 pt-2 shadow-lg shadow-slate-900/5 sm:hidden">
           {navLinks.map((link) => {
             const active = pathname === link.href;
             return (
@@ -89,7 +89,7 @@ export default function Navbar() {
                 onClick={() => setOpen(false)}
                 className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-brand-50 text-brand-700"
+                    ? "bg-brand-50 text-brand-800"
                     : "text-muted-foreground hover:bg-accent"
                 }`}
               >

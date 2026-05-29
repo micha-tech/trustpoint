@@ -525,17 +525,14 @@ export default function ClientJobPage() {
                               ₦{(m.amount / 100).toLocaleString()}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${getMilestoneStyle(m.status)}`}>
-                              {getMilestoneLabel(m.status)}
-                            </span>
-                          </div>
+                          <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${getMilestoneStyle(m.status)}`}>
+                            {getMilestoneLabel(m.status)}
+                          </span>
                         </div>
                         {needsApproval && jobViewState !== "dispute" && (
                           <Button
                             onClick={() => handleApproveMilestone(m.id)}
                             disabled={approving === m.id}
-                            size="sm"
                             className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700"
                           >
                             {approving === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
@@ -644,7 +641,7 @@ export default function ClientJobPage() {
                     <AlertTriangle className="size-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-medium text-orange-900">This job has been placed under review</h2>
+                    <h2 className="text-sm font-medium text-orange-900">This project has been placed under review</h2>
                     <p className="text-xs text-orange-700">
                       TrustPoint will review the issue before payment is released.
                     </p>
@@ -687,8 +684,8 @@ export default function ClientJobPage() {
                     <Clock className="size-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-medium text-amber-900">Milestones awaiting approval</h2>
-                    <p className="text-xs text-amber-700">Review each milestone and release payment when satisfied.</p>
+                    <h2 className="text-sm font-medium text-amber-900">Milestones awaiting review</h2>
+                    <p className="text-xs text-amber-700">Review each milestone and approve payment when satisfied.</p>
                   </div>
                 </div>
                 {!showDisputeForm ? (
@@ -698,7 +695,7 @@ export default function ClientJobPage() {
                     className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
                   >
                     <AlertTriangle className="size-4" />
-                    Report an Issue
+                    Report an issue
                   </Button>
                 ) : (
                   <div id="approval-dispute-form" className="space-y-3">
@@ -769,8 +766,8 @@ export default function ClientJobPage() {
                   <CheckCircle2 className="size-6" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-emerald-900">All settled</h2>
-                  <p className="mt-1 text-sm text-emerald-700">All milestones released. All done.</p>
+                    <h2 className="text-base font-bold text-emerald-900">All settled</h2>
+                  <p className="mt-1 text-sm text-emerald-700">All milestones completed. All done.</p>
                 </div>
               </CardContent>
             </Card>
@@ -778,7 +775,7 @@ export default function ClientJobPage() {
 
           <div className="mt-8 text-center text-xs text-muted-foreground">
             <p>Powered by <span className="font-medium text-foreground">TrustPoint</span></p>
-            <p className="mt-1">Funds held in escrow. Only released when you approve.</p>
+            <p className="mt-1">Funds held in protected payment. Released only when you approve.</p>
           </div>
         </>
       )}

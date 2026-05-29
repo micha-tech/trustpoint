@@ -123,7 +123,7 @@ function NewJobForm() {
       <div className="mb-6">
         <h1 className="text-xl font-bold text-foreground">New Project</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set up milestones and a secure payment request for your client.
+          Set up milestones and a protected payment request for your client.
         </p>
       </div>
 
@@ -279,7 +279,7 @@ function NewJobForm() {
           ) : (
             <Lock className="size-4" />
           )}
-          Generate payment link
+          Create protected payment link
         </Button>
       </div>
     </div>

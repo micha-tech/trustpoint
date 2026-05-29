@@ -47,16 +47,23 @@ function ArtisanDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 20;
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (p = page) => {
     if (!user) return;
     setError(false);
     setLoading(true);
     try {
       const token = await user.getIdToken();
-      const res = await fetch("/api/jobs", { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) setJobs(await res.json());
-      else setError(true);
+      const res = await fetch(`/api/jobs?page=${p}&limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setJobs(data.jobs);
+        setTotal(data.total);
+        setPage(data.page);
+      } else setError(true);
     } catch {
       setError(true);
     } finally {
@@ -64,7 +71,7 @@ function ArtisanDashboard() {
     }
   };
 
-  useEffect(() => { fetchJobs(); }, [user]);
+  useEffect(() => { fetchJobs(1); }, [user]);
 
   const displayName = user?.email?.split("@")[0] ?? user?.phoneNumber ?? "";
 
@@ -91,7 +98,7 @@ function ArtisanDashboard() {
             <Briefcase className="size-6" />
           </div>
           <p className="text-sm text-muted-foreground">Could not load jobs. Check your connection.</p>
-          <Button variant="outline" onClick={fetchJobs}>
+          <Button variant="outline" onClick={() => fetchJobs()}>
             <RefreshCcw className="size-4" />
             Try Again
           </Button>
@@ -114,7 +121,7 @@ function ArtisanDashboard() {
         <Link href="/artisan/jobs/new" className="w-full sm:w-auto">
           <Button className="w-full sm:w-auto">
             <Plus className="size-4" />
-            New Project
+            New protected project
           </Button>
         </Link>
       </div>
@@ -126,12 +133,12 @@ function ArtisanDashboard() {
               <Briefcase className="size-6" />
             </div>
             <p className="text-sm text-muted-foreground">
-              No projects yet. Start by creating your first one.
+              No projects yet. Start by creating your first protected project.
             </p>
             <Link href="/artisan/jobs/new">
               <Button>
                 <Plus className="size-4" />
-                New Project
+                New protected project
               </Button>
             </Link>
           </CardContent>
@@ -171,7 +178,7 @@ function ArtisanDashboard() {
                             ₦{(job.amount / 100).toLocaleString()}
                           </span>
                           <span className="text-muted-foreground">
-                            {job.escrow?.status === "FUNDED" ? "Secured" : job.escrow?.status === "RELEASED" ? "Paid out" : "Awaiting payment"}
+                            {job.escrow?.status === "FUNDED" ? "Payment secured" : job.escrow?.status === "RELEASED" ? "Settled" : "Awaiting payment"}
                           </span>
                         </div>
 
@@ -192,6 +199,22 @@ function ArtisanDashboard() {
           </div>
         ))}
       </div>
+
+      {total > limit && (
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Page {page} of {Math.ceil(total / limit)} ({total} total)
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => fetchJobs(page - 1)}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" disabled={page * limit >= total} onClick={() => fetchJobs(page + 1)}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

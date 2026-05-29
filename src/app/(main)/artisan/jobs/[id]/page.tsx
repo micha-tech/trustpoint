@@ -97,6 +97,7 @@ function JobDetail() {
   const [retryingPayout, setRetryingPayout] = useState<string | null>(null);
   const [evidenceList, setEvidenceList] = useState<{ id: string; fileName: string; fileType: string; fileSize: number; description: string | null; createdAt: string }[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [evidenceDesc, setEvidenceDesc] = useState("");
 
   const loadEvidence = useCallback(async () => {
@@ -117,9 +118,12 @@ function JobDetail() {
     if (!file || !user) return;
     if (file.size > 6 * 1024 * 1024) { toast.error("File too large (max 6MB)"); return; }
     setUploading(true);
+    setUploadProgress(0);
     try {
       const buf = await file.arrayBuffer();
+      setUploadProgress(50);
       const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      setUploadProgress(60);
       const token = await user.getIdToken();
       const res = await fetch(`/api/jobs/${id}/evidence`, {
         method: "POST",
@@ -131,6 +135,7 @@ function JobDetail() {
           description: evidenceDesc.trim() || null,
         }),
       });
+      setUploadProgress(100);
       if (!res.ok) { const err = await res.json(); throw new Error(err.error ?? "Upload failed"); }
       toast.success("Evidence uploaded");
       setEvidenceDesc("");
@@ -139,6 +144,7 @@ function JobDetail() {
       toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+      setUploadProgress(0);
       e.target.value = "";
     }
   };
@@ -379,9 +385,9 @@ function JobDetail() {
                 <CheckCircle2 className="size-4" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-brand-900">Payment link ready</h3>
+                <h3 className="text-sm font-medium text-brand-900">Protected payment link ready</h3>
                 <p className="text-xs text-brand-700">
-                  Share this link with your client to receive payment.
+                  Share this link with your client to start a protected payment.
                 </p>
               </div>
             </div>
@@ -446,31 +452,32 @@ function JobDetail() {
               {job.milestones.map((m) => (
                 <div
                   key={m.id}
-                  className={`flex items-center justify-between rounded-lg border p-3 ${
+                  className={`rounded-lg border p-3 ${
                     m.status === "COMPLETED" ? "border-amber-200 bg-amber-50/50" :
                     m.status === "APPROVED" || m.status === "RELEASED" ? "border-emerald-200 bg-emerald-50/50" :
                     ""
                   }`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">{m.title}</p>
-                    <p className="text-xs text-muted-foreground">₦{(m.amount / 100).toLocaleString()}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${getMilestoneStyle(m.status)}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">{m.title}</p>
+                      <p className="text-xs text-muted-foreground">₦{(m.amount / 100).toLocaleString()}</p>
+                    </div>
+                    <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${getMilestoneStyle(m.status)}`}>
                       {getMilestoneLabel(m.status)}
                     </span>
-                    {canMarkMilestones && m.status === "PENDING" && (
-                      <Button
-                        size="sm"
-                        onClick={() => setShowConfirm(m.id)}
-                        disabled={completing === m.id}
-                      >
-                        {completing === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                        Done
-                      </Button>
-                    )}
                   </div>
+                  {canMarkMilestones && m.status === "PENDING" && (
+                    <Button
+                      size="sm"
+                      onClick={() => setShowConfirm(m.id)}
+                      disabled={completing === m.id}
+                      className="mt-2 w-full sm:w-auto"
+                    >
+                      {completing === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                      Done
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -497,9 +504,23 @@ function JobDetail() {
               onChange={(e) => setEvidenceDesc(e.target.value)}
               className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-muted-foreground/30 p-3 text-sm text-muted-foreground hover:border-brand-500 hover:text-brand-600">
-              <Paperclip className="size-4" />
-              {uploading ? "Uploading..." : "Upload file (photo, PDF, receipt)"}
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-muted-foreground/30 p-3 text-sm text-muted-foreground hover:border-brand-500 hover:text-brand-600">
+              {uploading ? (
+                <div className="w-full space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-brand-600">
+                    <Loader2 className="size-4 animate-spin" />
+                    {uploadProgress < 50 ? "Reading file..." : uploadProgress < 100 ? "Uploading..." : "Done"}
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-brand-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Paperclip className="size-4" />
+                  Upload file (photo, PDF, receipt)
+                </div>
+              )}
               <input type="file" accept="image/*,.pdf,.doc,.docx" onChange={handleUpload} disabled={uploading} className="hidden" />
             </label>
           </div>
@@ -578,7 +599,7 @@ function JobDetail() {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-emerald-900">All settled</h3>
-                <p className="text-xs text-emerald-700">All milestones released. Well done.</p>
+                <p className="text-xs text-emerald-700">All milestones completed. Well done.</p>
               </div>
             </div>
           </CardContent>
@@ -597,13 +618,13 @@ function JobDetail() {
         </Card>
       )}
 
-      {/* Payout History */}
+      {/* Settlement History */}
       {job.payoutReleases && job.payoutReleases.length > 0 && (
         <Card className="mb-6">
           <CardContent className="p-5">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
               <Landmark className="size-4" />
-              Payout History
+              Settlement History
             </h3>
             <div className="space-y-2 text-sm">
               {job.payoutReleases.map((pr) => (
@@ -652,7 +673,7 @@ function JobDetail() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <Wallet className="size-4" />
               </div>
-              <span className="text-sm font-medium text-foreground">Payment</span>
+              <span className="text-sm font-medium text-foreground">Protected Payment</span>
               {job.escrow.status === "FUNDED" && (
                 <span className="ml-auto rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                   Secured
@@ -669,11 +690,11 @@ function JobDetail() {
             </div>
             <div className="mt-2 space-y-1 text-xs text-muted-foreground">
               <div className="flex justify-between">
-                <span>Job amount</span>
+                <span>Project amount</span>
                 <span>{formattedAmount}</span>
               </div>
               <div className="flex justify-between">
-                <span>Platform fee (5%)</span>
+                <span>Platform fee</span>
                 <span>{formattedFee}</span>
               </div>
             </div>
@@ -693,7 +714,7 @@ function JobDetail() {
           <CardContent className="p-5">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
               <Landmark className="size-4" />
-              Payment Instructions
+              Payment Details
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -717,7 +738,7 @@ function JobDetail() {
       {job.paymentReferences && job.paymentReferences.length > 0 && (
         <Card className="mb-6">
           <CardContent className="p-5">
-            <h3 className="mb-3 text-sm font-medium text-foreground">Payment History</h3>
+            <h3 className="mb-3 text-sm font-medium text-foreground">Transaction History</h3>
             <div className="space-y-2 text-sm">
               {job.paymentReferences.map((pr) => (
                 <div key={pr.reference} className="flex items-center justify-between">

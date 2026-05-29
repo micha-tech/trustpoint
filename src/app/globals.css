@@ -23,26 +23,26 @@
   --color-popover-foreground: hsl(0 0% 3.9%);
   --color-primary: hsl(210 89% 52%);
   --color-primary-foreground: hsl(0 0% 98%);
-  --color-secondary: hsl(0 0% 96.1%);
-  --color-secondary-foreground: hsl(0 0% 9%);
-  --color-muted: hsl(0 0% 96.1%);
-  --color-muted-foreground: hsl(0 0% 45.1%);
-  --color-accent: hsl(0 0% 96.1%);
-  --color-accent-foreground: hsl(0 0% 9%);
-  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-secondary: hsl(210 20% 96%);
+  --color-secondary-foreground: hsl(210 50% 10%);
+  --color-muted: hsl(210 15% 95%);
+  --color-muted-foreground: hsl(210 10% 45%);
+  --color-accent: hsl(210 25% 93%);
+  --color-accent-foreground: hsl(210 50% 10%);
+  --color-destructive: hsl(0 70% 50%);
   --color-destructive-foreground: hsl(0 0% 98%);
-  --color-border: hsl(0 0% 89.8%);
-  --color-input: hsl(0 0% 89.8%);
+  --color-border: hsl(210 15% 88%);
+  --color-input: hsl(210 15% 85%);
   --color-ring: hsl(210 89% 52%);
-  --color-sidebar-background: hsl(0 0% 98%);
-  --color-sidebar-foreground: hsl(0 0% 3.9%);
-  --color-sidebar-primary: hsl(0 0% 8%);
+  --color-sidebar-background: hsl(210 20% 97%);
+  --color-sidebar-foreground: hsl(210 50% 10%);
+  --color-sidebar-primary: hsl(210 89% 52%);
   --color-sidebar-primary-foreground: hsl(0 0% 98%);
-  --color-sidebar-accent: hsl(0 0% 96.1%);
-  --color-sidebar-accent-foreground: hsl(0 0% 9%);
-  --color-sidebar-border: hsl(0 0% 89.8%);
-  --color-sidebar-ring: hsl(0 0% 3.9%);
-  --radius: 0.75rem;
+  --color-sidebar-accent: hsl(210 25% 93%);
+  --color-sidebar-accent-foreground: hsl(210 50% 10%);
+  --color-sidebar-border: hsl(210 15% 88%);
+  --color-sidebar-ring: hsl(210 89% 52%);
+  --radius: 0.625rem;
   --animate-fade-in: fade-in 0.25s ease-out;
 }
 
@@ -75,5 +75,24 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+  }
+
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    content: "";
+    background:
+      radial-gradient(circle at top left, rgb(24 119 242 / 0.06), transparent 34rem),
+      linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(242 245 250 / 0.85));
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
   }
 }
