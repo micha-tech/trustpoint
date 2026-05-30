@@ -16,7 +16,7 @@ import {
 
 const nav = [
   { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/disputes", label: "Disputes", icon: Scale },
+  { href: "/admin/disputes", label: "Reviews", icon: Scale },
 ];
 
 function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -32,7 +32,7 @@ function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void })
       }`}>
         <div className="flex items-center justify-between border-b border-border px-4 py-4">
           <Link href="/admin/dashboard" className="flex items-center gap-2" onClick={onClose}>
-            <Image src="/logo.png" alt="TrustPoint" width={64} height={32} className="h-7 w-auto" priority />
+            <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="h-9 w-auto" priority />
             <span className="text-xs font-medium text-muted-foreground">Admin</span>
           </Link>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground sm:hidden">

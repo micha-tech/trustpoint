@@ -141,7 +141,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-            <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="mx-auto h-10 w-auto" priority />
+            <Image src="/logo.png" alt="TrustPoint" width={112} height={56} className="mx-auto h-12 w-auto" priority />
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Create your account</h1>
           <p className="mt-1 text-sm text-muted-foreground">Start protecting your transactions</p>

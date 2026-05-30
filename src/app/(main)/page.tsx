@@ -25,7 +25,7 @@ export default function Home() {
     <>
       <section className="relative px-4 pb-16 pt-6 sm:pb-20 sm:pt-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Image src="/logo.png" alt="TrustPoint" width={116} height={58} className="h-11 w-auto" priority />
+          <Image src="/logo.png" alt="TrustPoint" width={160} height={80} className="h-14 w-auto" priority />
           <Link
             href="/login"
             className="rounded-lg px-3.5 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -99,7 +99,7 @@ export default function Home() {
 
       <footer className="border-t border-border/70 bg-white/70 px-4 py-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-center sm:flex-row">
-          <Image src="/logo.png" alt="TrustPoint" width={56} height={28} className="h-7 w-auto opacity-75" />
+          <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="h-9 w-auto opacity-75" />
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} TrustPoint. Protected payments for real-world work.
           </p>

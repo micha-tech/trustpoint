@@ -41,7 +41,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/82 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <Image src="/logo.png" alt="TrustPoint" width={64} height={32} className="h-8 w-auto" priority />
+          <Image src="/logo.png" alt="TrustPoint" width={88} height={44} className="h-10 w-auto" priority />
         </Link>
 
         <Button
