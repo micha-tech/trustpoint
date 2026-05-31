@@ -18,7 +18,7 @@ type Dispute = {
 const statusBadge: Record<string, string> = {
   OPEN: "bg-red-50 text-red-700",
   UNDER_REVIEW: "bg-amber-50 text-amber-700",
-  RESOLVED_ARTISAN: "bg-emerald-50 text-emerald-700",
+  RESOLVED_PROVIDER: "bg-emerald-50 text-emerald-700",
   RESOLVED_CLIENT: "bg-blue-50 text-blue-700",
   ESCALATED: "bg-purple-50 text-purple-700",
 };

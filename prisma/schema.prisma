@@ -16,20 +16,20 @@ model User {
   phone     String?
   email     String?
   name      String?
-  role      String   @default("user") // user | artisan | admin
+  role      String   @default("user") // user | provider | admin
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  artisanProfile ArtisanProfile?
-  clientJobs     Job[]         @relation("ClientJobs")
-  artisanJobs    Job[]         @relation("ArtisanJobs")
+  providerProfile ProviderProfile?
+  clientJobs      Job[]         @relation("ClientJobs")
+  providerJobs    Job[]         @relation("ProviderJobs")
   approvals      Approval[]
   disputes       Dispute[]
   evidence       Evidence[]
   notifications  Notification[]
 }
 
-model ArtisanProfile {
+model ProviderProfile {
   id           String   @id @default(cuid())
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -42,6 +42,8 @@ model ArtisanProfile {
   isVerified   Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@map("ArtisanProfile")
 }
 
 // ──────────────────────────────────────────
@@ -72,11 +74,12 @@ model Job {
   expectedCompletionDate DateTime?
   completedAt            DateTime?  // when artisan marked complete
   approvedAt             DateTime?  // when client approved
+  allApprovedAt          DateTime?  // when all milestones were approved
 
-  clientId    String
-  client      User      @relation("ClientJobs", fields: [clientId], references: [id])
-  artisanId   String
-  artisan     User      @relation("ArtisanJobs", fields: [artisanId], references: [id])
+  clientId   String
+  client     User     @relation("ClientJobs", fields: [clientId], references: [id])
+  providerId String
+  provider   User     @relation("ProviderJobs", fields: [providerId], references: [id])
 
   milestones  Milestone[]
   evidence    Evidence[]
@@ -87,7 +90,7 @@ model Job {
   updatedAt DateTime @updatedAt
 
   @@index([clientId])
-  @@index([artisanId])
+  @@index([providerId])
   @@index([status])
 }
 
@@ -316,7 +319,7 @@ model WebhookEvent {
 enum DisputeStatus {
   OPEN
   UNDER_REVIEW
-  RESOLVED_ARTISAN
+  RESOLVED_PROVIDER
   RESOLVED_CLIENT
   ESCALATED
 }
@@ -368,7 +371,7 @@ model Notification {
 }
 
 // ──────────────────────────────────────────
-// EVIDENCE (artisan-uploaded files for client)
+// EVIDENCE (provider-uploaded files for client)
 // ──────────────────────────────────────────
 
 model Evidence {

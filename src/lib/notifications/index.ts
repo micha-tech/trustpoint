@@ -11,11 +11,11 @@ interface SendParams {
 }
 
 const WHATSAPP_TEMPLATES = {
-  payment_received: ({ artisanName }: { artisanName: string }) => ({
-    body: `Payment received! ${artisanName} has been notified and will start work on your job.`,
+  payment_received: ({ providerName }: { providerName: string }) => ({
+    body: `Payment received! ${providerName} has been notified and will start work on your job.`,
   }),
-  payout_failed: ({ artisanName }: { artisanName: string }) => ({
-    body: `Payout to ${artisanName} failed. We'll retry automatically. Contact support if this persists.`,
+  payout_failed: ({ providerName }: { providerName: string }) => ({
+    body: `Payout to ${providerName} failed. We'll retry automatically. Contact support if this persists.`,
   }),
   job_completed: () => ({
     body: `Job completed! Thank you for using TrustPoint.`,

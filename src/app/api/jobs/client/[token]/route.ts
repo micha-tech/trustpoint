@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyClientAccessToken } from "@/lib/security/tokens";
+import { maybeAutoRelease } from "@/lib/services/auto-release";
 
 export async function GET(
   _req: NextRequest,
@@ -9,6 +10,8 @@ export async function GET(
   try {
     const { token } = await params;
     const { jobId } = verifyClientAccessToken(token);
+
+    await maybeAutoRelease(jobId);
 
     const job = await prisma.job.findUnique({
       where: { id: jobId },
@@ -24,8 +27,9 @@ export async function GET(
         expectedCompletionDate: true,
         completedAt: true,
         approvedAt: true,
+        allApprovedAt: true,
         createdAt: true,
-        artisan: { select: { name: true, phone: true } },
+        provider: { select: { name: true, phone: true } },
         escrow: true,
         milestones: { orderBy: { sortOrder: "asc" } },
       },
@@ -48,7 +52,8 @@ export async function GET(
       expectedCompletionDate: j.expectedCompletionDate ?? null,
       completedAt: j.completedAt ?? null,
       approvedAt: j.approvedAt ?? null,
-      artisan: job.artisan,
+      allApprovedAt: j.allApprovedAt ?? null,
+      provider: job.provider,
       escrow: job.escrow,
       milestones: job.milestones,
       createdAt: job.createdAt,

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyClientAccessToken, verifyClientVerificationToken, generateRef } from "@/lib/security/tokens";
+import { verifyClientAccessToken, verifyClientVerificationToken } from "@/lib/security/tokens";
 import { signLedgerEntry } from "@/lib/security/webhooks";
 import { validateOrigin } from "@/lib/middleware/origin";
-import { initiateTransfer } from "@/lib/paystack";
+import { maybeAutoRelease } from "@/lib/services/auto-release";
 import type { Prisma } from "@prisma/client";
 
 function requireClientVerification(req: NextRequest, jobId: string, clientEmail: string | null) {
@@ -28,7 +28,7 @@ export async function POST(
       where: { id: jobId },
       include: {
         escrow: true,
-        artisan: { include: { artisanProfile: true } },
+        provider: { include: { providerProfile: true } },
         milestones: true,
       },
     });
@@ -50,41 +50,22 @@ export async function POST(
 
     if (milestone.status !== "COMPLETED") {
       return NextResponse.json(
-        { error: "Milestone has not been completed yet by the artisan" },
-        { status: 400 }
-      );
-    }
-
-    if (job.escrow?.status !== "FUNDED" && job.escrow?.status !== "PARTIALLY_RELEASED") {
-      return NextResponse.json(
-        { error: "Escrow is not in a releasable state" },
-        { status: 400 }
-      );
-    }
-
-    const artisanProfile = job.artisan?.artisanProfile;
-    if (!artisanProfile?.recipientCode) {
-      return NextResponse.json(
-        { error: "The artisan has not set up their payout details yet. Ask them to update their profile." },
+        { error: "Milestone has not been completed yet by the provider" },
         { status: 400 }
       );
     }
 
     const escrow = job.escrow;
-    if (escrow.pendingAmount < milestone.amount) {
+    if (escrow && escrow.pendingAmount < milestone.amount) {
       return NextResponse.json({ error: "Insufficient funds in escrow" }, { status: 400 });
     }
 
-    let shouldBatch = false;
-    let batchMilestoneIds: string[] = [];
-    let batchTotal = 0;
-    let batchRef = "";
-    const payoutRef = generateRef("PO");
-    const ledgerData = JSON.stringify({
+    const ledgerSignature = signLedgerEntry(JSON.stringify({
       jobId: job.id, event: "milestone.approved", actorId: job.clientId,
       amount: milestone.amount, reference: `APPROVE-MS-${milestone.id.slice(0, 8)}`,
-    });
-    const ledgerSignature = signLedgerEntry(ledgerData);
+    }));
+
+    let allJustApproved = false;
 
     await prisma.$transaction(async (tx) => {
       const msClaim = await tx.milestone.updateMany({
@@ -93,29 +74,20 @@ export async function POST(
       });
       if (msClaim.count === 0) throw new Error("Milestone has already been approved");
 
-      const newPending = escrow.pendingAmount - milestone.amount;
-      const newEscrowStatus = newPending <= 0 ? "RELEASED" : "PARTIALLY_RELEASED";
+      if (escrow) {
+        const newPending = escrow.pendingAmount - milestone.amount;
+        const newEscrowStatus = newPending <= 0 ? "RELEASED" : "PARTIALLY_RELEASED";
 
-      const escrowClaim = await tx.escrowState.updateMany({
-        where: { jobId: job.id, pendingAmount: { gte: milestone.amount } },
-        data: {
-          status: newEscrowStatus,
-          releasedAmount: { increment: milestone.amount },
-          pendingAmount: { decrement: milestone.amount },
-        },
-      });
-      if (escrowClaim.count === 0) throw new Error("Escrow update failed");
-
-      await tx.payoutRelease.create({
-        data: {
-          jobId: job.id,
-          milestoneId: milestone.id,
-          amount: milestone.amount,
-          status: "PENDING",
-          recipientCode: artisanProfile.recipientCode!,
-          reference: payoutRef,
-        },
-      });
+        const escrowClaim = await tx.escrowState.updateMany({
+          where: { jobId: job.id, pendingAmount: { gte: milestone.amount } },
+          data: {
+            status: newEscrowStatus,
+            releasedAmount: { increment: milestone.amount },
+            pendingAmount: { decrement: milestone.amount },
+          },
+        });
+        if (escrowClaim.count === 0) throw new Error("Escrow update failed");
+      }
 
       await tx.ledgerEntry.create({
         data: {
@@ -129,81 +101,26 @@ export async function POST(
         },
       });
 
-      // Check if ALL milestones are now in terminal state (APPROVED or RELEASED)
       const allMilestones = await tx.milestone.findMany({
         where: { jobId: job.id },
-        select: { id: true, status: true, amount: true },
+        select: { id: true, status: true },
       });
+
       const allTerminal = allMilestones.every((m) =>
         ["APPROVED", "RELEASED"].includes(m.status)
       );
-      const approvedMs = allMilestones.filter((m) => m.status === "APPROVED");
 
-      if (allTerminal && approvedMs.length > 0) {
-        batchMilestoneIds = approvedMs.map((m) => m.id);
-        batchTotal = approvedMs.reduce((sum, m) => sum + m.amount, 0);
-        batchRef = generateRef("BATCH");
-
+      if (allTerminal) {
         await tx.job.update({
           where: { id: job.id },
-          data: { approvedAt: new Date(), status: "COMPLETED" },
+          data: { allApprovedAt: new Date(), status: "COMPLETED" },
         });
-
-        await tx.ledgerEntry.create({
-          data: {
-            jobId: job.id,
-            event: "payout.batch_initiated",
-            actorId: job.clientId,
-            amount: batchTotal,
-            reference: batchRef,
-            signature: signLedgerEntry(JSON.stringify({
-              jobId: job.id, event: "payout.batch_initiated", amount: batchTotal, reference: batchRef,
-            })),
-            metadata: { milestoneIds: approvedMs.map((m) => m.id) } as Prisma.InputJsonValue,
-          },
-        });
+        allJustApproved = true;
       }
     });
 
-    // External Paystack call — outside transaction
-    if (batchTotal > 0 && batchMilestoneIds.length > 0) {
-      try {
-        const transfer = await initiateTransfer({
-          amount: batchTotal,
-          recipientCode: artisanProfile.recipientCode,
-          reference: batchRef,
-          reason: `Batch payout for ${job.title}`,
-        });
-
-        await prisma.payoutRelease.updateMany({
-          where: { jobId: job.id, milestoneId: { in: batchMilestoneIds } },
-          data: {
-            status: transfer.status === "success" ? "COMPLETED" : "PROCESSING",
-            transferCode: transfer.transferCode,
-            completedAt: transfer.status === "success" ? new Date() : null,
-          },
-        });
-
-        if (transfer.status === "success") {
-          await prisma.milestone.updateMany({
-            where: { id: { in: batchMilestoneIds } },
-            data: { status: "RELEASED" },
-          });
-        }
-      } catch {
-        await prisma.ledgerEntry.create({
-          data: {
-            jobId: job.id,
-            event: "payout.batch_failed",
-            amount: batchTotal,
-            reference: batchRef,
-            signature: signLedgerEntry(JSON.stringify({
-              jobId: job.id, event: "payout.batch_failed", amount: batchTotal, reference: batchRef,
-            })),
-            metadata: { reason: "Transfer initiation failed" } as Prisma.InputJsonValue,
-          },
-        });
-      }
+    if (allJustApproved) {
+      await maybeAutoRelease(job.id);
     }
 
     return NextResponse.json({ success: true });

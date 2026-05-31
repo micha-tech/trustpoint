@@ -84,8 +84,11 @@
     pointer-events: none;
     content: "";
     background:
-      radial-gradient(circle at top left, rgb(24 119 242 / 0.06), transparent 34rem),
-      linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(242 245 250 / 0.85));
+      linear-gradient(180deg, rgb(24 119 242 / 0.06), rgb(255 255 255 / 0) 24rem),
+      linear-gradient(90deg, rgb(14 95 199 / 0.04) 1px, transparent 1px),
+      linear-gradient(180deg, rgb(14 95 199 / 0.035) 1px, transparent 1px),
+      linear-gradient(180deg, rgb(255 255 255 / 0.96), rgb(244 248 253 / 0.92));
+    background-size: auto, 4.5rem 4.5rem, 4.5rem 4.5rem, auto;
   }
 
   button,

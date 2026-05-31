@@ -34,7 +34,7 @@ export async function POST(
 
     if (!job.clientEmail) {
       return NextResponse.json(
-        { error: "No client email on file. Contact the artisan." },
+        { error: "No client email on file. Contact the provider." },
         { status: 400 }
       );
     }
@@ -83,7 +83,7 @@ export async function POST(
         <div style="background:#f5f5f5;border-radius:12px;padding:24px;text-align:center;margin:16px 0;font-size:32px;font-weight:700;letter-spacing:8px;color:#1a1a1a">${code}</div>
         <p style="color:#666;font-size:13px">This code expires in 15 minutes. If you didn't request this, you can ignore this email.</p>
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
-        <p style="color:#999;font-size:12px">TrustPoint — Secure payments for artisans</p>
+        <p style="color:#999;font-size:12px">TrustPoint — Secure payments for providers</p>
       </div>`,
     });
 

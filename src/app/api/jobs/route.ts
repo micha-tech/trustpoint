@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const user = await getUserFromToken(token);
 
-    await prisma.artisanProfile.upsert({
+    await prisma.providerProfile.upsert({
       where: { userId: user.id },
       create: { userId: user.id },
       update: {},
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         amount: totalAmount,
         fee,
         ref,
-        artisanId: user.id,
+        providerId: user.id,
         clientId: user.id,
         clientEmail: clientEmail?.trim().toLowerCase(),
         expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,
@@ -165,13 +165,13 @@ export async function GET(req: NextRequest) {
 
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
-        where: { artisanId: user.id },
+        where: { providerId: user.id },
         include: { escrow: true },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      prisma.job.count({ where: { artisanId: user.id } }),
+      prisma.job.count({ where: { providerId: user.id } }),
     ]);
 
     return NextResponse.json({ jobs, total, page, limit });

@@ -60,7 +60,7 @@ export async function POST(
       where: { id: jobId },
       include: {
         escrow: true,
-        artisan: { select: { name: true, phone: true } },
+        provider: { select: { name: true, phone: true } },
       },
     });
 
@@ -82,7 +82,7 @@ export async function POST(
         expectedCompletionDate: job.expectedCompletionDate,
         completedAt: job.completedAt,
         approvedAt: job.approvedAt,
-        artisan: job.artisan,
+        provider: job.provider,
         escrow: job.escrow,
         createdAt: job.createdAt,
       },

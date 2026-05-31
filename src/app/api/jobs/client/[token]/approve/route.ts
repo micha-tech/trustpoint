@@ -28,7 +28,7 @@ export async function POST(
       where: { id: jobId },
       include: {
         escrow: true,
-        artisan: { include: { artisanProfile: true } },
+        provider: { include: { providerProfile: true } },
         milestones: true,
       },
     });
@@ -41,7 +41,7 @@ export async function POST(
 
     if (job.status !== "COMPLETED") {
       return NextResponse.json(
-        { error: "Artisan has not marked this job as complete yet" },
+        { error: "Provider has not marked this job as complete yet" },
         { status: 400 }
       );
     }
@@ -53,10 +53,10 @@ export async function POST(
       );
     }
 
-    const artisanProfile = job.artisan?.artisanProfile;
-    if (!artisanProfile?.recipientCode) {
+    const providerProfile = job.provider?.providerProfile;
+    if (!providerProfile?.recipientCode) {
       return NextResponse.json(
-        { error: "The artisan has not set up their payout details yet. Ask them to update their profile." },
+        { error: "The provider has not set up their payout details yet. Ask them to update their profile." },
         { status: 400 }
       );
     }
@@ -121,7 +121,7 @@ export async function POST(
           jobId: job.id,
           amount: releaseAmount,
           status: "PENDING",
-          recipientCode: artisanProfile.recipientCode!,
+          recipientCode: providerProfile.recipientCode!,
           reference: payoutRef,
         },
       });
@@ -142,7 +142,7 @@ export async function POST(
     try {
       const transfer = await initiateTransfer({
         amount: releaseAmount,
-        recipientCode: artisanProfile.recipientCode,
+        recipientCode: providerProfile.recipientCode,
         reference: payoutRef,
         reason: `Payout for ${job.title}`,
       });

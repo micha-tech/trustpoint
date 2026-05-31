@@ -4,9 +4,11 @@ import { verifyPayment } from "@/lib/paystack";
 import { fundEscrow } from "@/lib/services/escrow";
 import { writeLedgerEntry } from "@/lib/services/ledger";
 import { transitionJob, JobState } from "@/lib/state-machines";
+import { getUserFromToken } from "@/lib/auth-server";
+import { verifyClientVerificationToken } from "@/lib/security/tokens";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ reference: string }> }
 ) {
   try {
@@ -18,6 +20,28 @@ export async function POST(
 
     if (!paymentRef) {
       return NextResponse.json({ error: "Payment reference not found" }, { status: 404 });
+    }
+
+    const clientToken = req.headers.get("x-client-verification") ?? "";
+    const authHeader = req.headers.get("authorization");
+    const bearerToken = authHeader?.replace("Bearer ", "");
+
+    if (clientToken) {
+      try {
+        const verified = verifyClientVerificationToken(clientToken);
+        if (verified.jobId !== paymentRef.jobId) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+      } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else if (bearerToken) {
+      const user = await getUserFromToken(bearerToken);
+      if (!user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (paymentRef.status !== "pending") {

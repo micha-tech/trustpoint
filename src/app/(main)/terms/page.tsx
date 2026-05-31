@@ -15,7 +15,7 @@ export default function TermsPage() {
         <section>
           <h2 className="mb-2 text-base font-semibold text-foreground">1. Service</h2>
           <p>
-            TrustPoint provides a protected payment platform that connects artisans and clients. We facilitate secure transactions by holding funds until work is approved by the client.
+            TrustPoint provides a protected payment platform that connects providers and clients. We facilitate secure transactions by holding funds until work is approved by the client.
           </p>
         </section>
 
@@ -36,14 +36,14 @@ export default function TermsPage() {
         <section>
           <h2 className="mb-2 text-base font-semibold text-foreground">4. Dispute Resolution</h2>
           <p>
-            If a disagreement arises, either party may submit the issue for review. TrustPoint will review all evidence and make a fair determination. The decision may result in releasing payment to the artisan or refunding the client.
+            If a disagreement arises, either party may submit the issue for review. TrustPoint will review all evidence and make a fair determination. The decision may result in releasing payment to the provider or refunding the client.
           </p>
         </section>
 
         <section>
           <h2 className="mb-2 text-base font-semibold text-foreground">5. Limitation of Liability</h2>
           <p>
-            TrustPoint acts as a payment facilitator. We are not liable for the quality of work performed or any disputes arising from the agreement between artisan and client.
+            TrustPoint acts as a payment facilitator. We are not liable for the quality of work performed or any disputes arising from the agreement between provider and client.
           </p>
         </section>
       </div>

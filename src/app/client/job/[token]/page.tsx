@@ -52,7 +52,8 @@ type ClientJob = {
   expectedCompletionDate: string | null;
   completedAt: string | null;
   approvedAt: string | null;
-  artisan: { name: string | null; phone: string | null };
+  allApprovedAt: string | null;
+  provider: { name: string | null; phone: string | null };
   escrow: EscrowState | null;
   milestones: ClientMilestone[];
   createdAt: string;
@@ -69,6 +70,38 @@ type ViewState =
 const STORAGE_KEY_PREFIX = "tp_verified_";
 const VERIFICATION_TOKEN_PREFIX = "tp_client_verification_";
 
+function AutoReleaseCountdown({ allApprovedAt }: { allApprovedAt: string }) {
+  const APPROVAL_WINDOW_MS = 48 * 60 * 60 * 1000;
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    const tick = () => {
+      const elapsed = Date.now() - new Date(allApprovedAt).getTime();
+      const left = Math.max(0, APPROVAL_WINDOW_MS - elapsed);
+      setRemaining(left);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [allApprovedAt]);
+
+  if (remaining === null) return null;
+
+  if (remaining <= 0) {
+    return <p className="text-center text-xs text-blue-700">Auto-releasing soon…</p>;
+  }
+
+  const hours = Math.floor(remaining / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+
+  return (
+    <p className="text-center text-xs text-blue-700">
+      Auto-releases in {hours}h {minutes}m {seconds}s
+    </p>
+  );
+}
+
 export default function ClientJobPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<ClientJob | null>(null);
@@ -78,6 +111,7 @@ export default function ClientJobPage() {
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [approving, setApproving] = useState<string | null>(null);
+  const [releasing, setReleasing] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
@@ -251,13 +285,37 @@ export default function ClientJobPage() {
     }
   };
 
-  const getJobViewState = useCallback((): "payment" | "success" | "approval" | "released" | "dispute" | "mixed" | "error" => {
+  const handleReleasePayment = async () => {
+    setReleasing(true);
+    try {
+      const clientVerification = sessionStorage.getItem(`${VERIFICATION_TOKEN_PREFIX}${token}`);
+      const res = await fetch(`/api/jobs/client/${token}/release`, {
+        method: "POST",
+        headers: clientVerification ? { "X-Client-Verification": clientVerification } : {},
+      });
+      if (res.ok) {
+        toast.success("Payment released to the provider");
+        loadJob();
+      } else {
+        const err = await res.json();
+        toast.error(err.error ?? "Could not release payment");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setReleasing(false);
+    }
+  };
+
+  const getJobViewState = useCallback((): "payment" | "success" | "approval" | "ready_to_release" | "released" | "dispute" | "mixed" | "error" => {
     if (!data) return "error";
     if (data.status === "DISPUTED") return "dispute";
     if (data.status === "COMPLETED" && data.approvedAt) return "released";
     const hasCompleted = data.milestones?.some((m) => m.status === "COMPLETED");
-    const allReleased = data.milestones?.every((m) => ["APPROVED", "RELEASED"].includes(m.status));
+    const allReleased = data.milestones?.every((m) => m.status === "RELEASED");
+    const allApproved = data.milestones?.every((m) => ["APPROVED", "RELEASED"].includes(m.status));
     if (allReleased) return "released";
+    if (allApproved) return "ready_to_release";
     if (hasCompleted) return "approval";
     if (data.escrow?.status === "FUNDED" || data.status === "ACTIVE" || data.status === "IN_PROGRESS") return "success";
     return "payment";
@@ -288,10 +346,10 @@ export default function ClientJobPage() {
   }, [data?.status, loadJob]);
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg px-4 py-6">
+    <div className="mx-auto min-h-screen max-w-2xl px-4 py-6 sm:px-6">
       <div className="mb-6 text-center">
         <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-          <Image src="/logo.png" alt="TrustPoint" width={120} height={60} className="mx-auto h-14 w-auto sm:h-16" priority />
+          <Image src="/logo.png" alt="TrustPoint" width={128} height={64} className="mx-auto h-12 w-auto sm:h-14" priority />
         </Link>
       </div>
 
@@ -305,12 +363,12 @@ export default function ClientJobPage() {
       {viewState === "link-invalid" && (
         <div className="flex items-center justify-center px-4 py-20">
           <div className="max-w-sm text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <AlertTriangle className="size-6" />
             </div>
             <h1 className="text-lg font-bold text-foreground">Link not valid</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              This payment link may have expired or is invalid. Ask the artisan to share a new link.
+              This payment link may have expired or is invalid. Ask the provider to share a new link.
             </p>
             <Button variant="outline" className="mt-4" onClick={loadJob}>
               Try Again
@@ -322,12 +380,12 @@ export default function ClientJobPage() {
       {viewState === "no-email-on-file" && (
         <div className="flex items-center justify-center px-4 py-20">
           <div className="max-w-sm text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <AlertTriangle className="size-6" />
             </div>
             <h1 className="text-lg font-bold text-foreground">Verification unavailable</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              The artisan needs to add your email to this project. Ask them to create a new project with your email.
+              The provider needs to add your email to this project. Ask them to create a new project with your email.
             </p>
           </div>
         </div>
@@ -336,18 +394,18 @@ export default function ClientJobPage() {
       {viewState === "verify-email" && data && (
         <Card className="mb-4">
           <CardContent className="p-5 text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <Mail className="size-6" />
             </div>
             <h1 className="text-lg font-bold text-foreground">Verify your email</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter the email the artisan used to create this project. A code will be sent to verify your identity.
+              Enter the email the provider used to create this project. A code will be sent to verify your identity.
             </p>
             {data && (
               <div className="mt-4 rounded-lg bg-muted p-3 text-left text-sm">
                 <p className="font-medium text-foreground">{data.title}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  by {data.artisan?.name ?? "Your artisan"}
+                  by {data.provider?.name ?? "Your provider"}
                 </p>
               </div>
             )}
@@ -377,7 +435,7 @@ export default function ClientJobPage() {
       {viewState === "verify-code" && (
         <Card className="mb-4">
           <CardContent className="p-5 text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <KeyRound className="size-6" />
             </div>
             <h1 className="text-lg font-bold text-foreground">Check your inbox</h1>
@@ -423,7 +481,7 @@ export default function ClientJobPage() {
                           if (inputs[5]) inputs[5].focus();
                         }
                       }}
-                      className="size-11 rounded-xl border border-input bg-background text-center text-lg font-semibold text-foreground outline-none transition-all duration-150 placeholder:text-muted-foreground/40 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 sm:size-13 sm:text-xl"
+                      className="size-11 rounded-lg border border-input bg-background text-center text-lg font-semibold text-foreground outline-none transition-all duration-150 placeholder:text-muted-foreground/40 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 sm:size-13 sm:text-xl"
                     />
                   );
                 })}
@@ -463,7 +521,7 @@ export default function ClientJobPage() {
           {pollRef.current && (
             <div className="mb-4 flex items-center justify-center gap-1.5 text-xs text-amber-600">
               <Loader2 className="size-3 animate-spin" />
-              Checking for artisan updates...
+              Checking for provider updates...
             </div>
           )}
 
@@ -476,9 +534,9 @@ export default function ClientJobPage() {
               )}
               <div className="mt-4 space-y-1.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Artisan</span>
+                  <span className="text-muted-foreground">Provider</span>
                   <span className="font-medium text-foreground">
-                    {data.artisan?.name ?? "Assigned"}
+                    {data.provider?.name ?? "Assigned"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -536,7 +594,7 @@ export default function ClientJobPage() {
                             className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700"
                           >
                             {approving === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                            Release payment for this milestone
+                            Approve milestone
                           </Button>
                         )}
                       </div>
@@ -547,7 +605,7 @@ export default function ClientJobPage() {
             </Card>
           )}
 
-          {/* Evidence from artisan */}
+          {/* Evidence from provider */}
           {clientEvidence.length > 0 && (
             <Card className="mb-4">
               <CardContent className="p-5">
@@ -621,7 +679,7 @@ export default function ClientJobPage() {
                 <div>
                   <h2 className="text-base font-bold text-emerald-900">Payment secured</h2>
                   <p className="mt-1 text-sm text-emerald-700">
-                    You&apos;re all set. The artisan has been notified.
+                    You&apos;re all set. The provider has been notified.
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-200/50 px-3 py-1 text-xs font-medium text-emerald-800">
@@ -726,6 +784,77 @@ export default function ClientJobPage() {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Ready to release — all milestones approved, waiting for manual release or 48h auto-release */}
+          {jobViewState === "ready_to_release" && (
+            <Card className="mb-4 border-blue-200 bg-blue-50">
+              <CardContent className="space-y-4 p-5">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                    <CheckCircle2 className="size-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-medium text-blue-900">All milestones approved</h2>
+                    <p className="text-xs text-blue-700">Release payment to the provider or wait for auto-release.</p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleReleasePayment}
+                  disabled={releasing}
+                  className="w-full"
+                >
+                  {releasing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                  Release payment now
+                </Button>
+
+                {data?.allApprovedAt && (
+                  <AutoReleaseCountdown allApprovedAt={data.allApprovedAt} />
+                )}
+
+                <div className="border-t border-blue-200 pt-3">
+                  {!showDisputeForm ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDisputeForm(true)}
+                      className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+                    >
+                      <AlertTriangle className="size-4" />
+                      Report an issue
+                    </Button>
+                  ) : (
+                    <div id="approval-dispute-form" className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
+                        <textarea
+                          id="approval-dispute-reason"
+                          rows={3}
+                          maxLength={500}
+                          placeholder="Briefly describe the issue."
+                          className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          value={disputeReason}
+                          onChange={(e) => setDisputeReason(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setShowDisputeConfirm(true)}
+                          disabled={submittingDispute || !disputeReason.trim()}
+                          className="flex-1"
+                        >
+                          {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
+                          Submit Issue
+                        </Button>
+                        <Button variant="outline" onClick={() => { setShowDisputeForm(false); setDisputeReason(""); }}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

@@ -20,7 +20,7 @@ export async function POST(
       where: { id, artisanId: user.id },
       include: {
         escrow: true,
-        artisan: { select: { name: true } },
+        provider: { select: { name: true } },
         milestones: true,
       },
     });
@@ -83,24 +83,24 @@ export async function POST(
       const clientUrl = job.clientToken
         ? `${req.nextUrl.origin}/client/job/${job.clientToken}`
         : null;
-      const artisanName = escapeHtml(job.artisan?.name ?? "Your artisan");
+      const providerName = escapeHtml(job.provider?.name ?? "Your provider");
       const jobTitle = escapeHtml(job.title);
       const msTitle = escapeHtml(milestone.title);
 
       sendEmail({
         to: job.clientEmail,
-        subject: `${artisanName} completed a milestone: ${msTitle}`,
+        subject: `${providerName} completed a milestone: ${msTitle}`,
         html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
           <h2 style="color:#1877f2;margin:0 0 16px">TrustPoint</h2>
           <p style="color:#1a1a1a;font-size:14px;line-height:1.5">
-            ${artisanName} completed the milestone <strong>${msTitle}</strong> for <strong>${jobTitle}</strong>.
+            ${providerName} completed the milestone <strong>${msTitle}</strong> for <strong>${jobTitle}</strong>.
           </p>
           <p style="color:#1a1a1a;font-size:14px;line-height:1.5">
             Review the work and release the payment for this milestone when you're satisfied.
           </p>
           ${clientUrl ? `<a href="${clientUrl}" style="display:inline-block;background:#1877f2;color:#fff;border-radius:8px;padding:12px 24px;margin:16px 0;text-decoration:none;font-size:14px;font-weight:600">Review & Release</a>` : ""}
           <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
-          <p style="color:#999;font-size:12px">TrustPoint — Secure payments for artisans</p>
+          <p style="color:#999;font-size:12px">TrustPoint — Secure payments for providers</p>
         </div>`,
       });
     }

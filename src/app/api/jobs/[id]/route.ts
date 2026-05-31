@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth-server";
+import { maybeAutoRelease } from "@/lib/services/auto-release";
 
 export async function GET(
   req: NextRequest,
@@ -18,13 +19,15 @@ export async function GET(
       include: {
         escrow: true,
         client: { select: { name: true, email: true, phone: true } },
-        artisan: { select: { name: true, phone: true } },
+        provider: { select: { name: true, phone: true } },
         disputes: { orderBy: { createdAt: "desc" }, take: 1 },
         milestones: { orderBy: { sortOrder: "asc" } },
       },
     });
 
     if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    await maybeAutoRelease(job.id);
 
     const [paymentReferences, virtualAccount, payoutReleases] = await Promise.all([
       prisma.paymentReference.findMany({

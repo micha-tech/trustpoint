@@ -26,10 +26,10 @@ export async function POST(
 
     const job = await prisma.job.findUnique({
       where: { id: failedPayout.jobId },
-      select: { artisanId: true, title: true, ref: true },
+      select: { providerId: true, title: true, ref: true },
     });
 
-    if (!job || job.artisanId !== user.id) {
+    if (!job || job.providerId !== user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -37,11 +37,11 @@ export async function POST(
       return NextResponse.json({ error: "Only failed payouts can be retried" }, { status: 400 });
     }
 
-    const artisanProfile = await prisma.artisanProfile.findUnique({
+    const providerProfile = await prisma.providerProfile.findUnique({
       where: { userId: user.id },
     });
 
-    if (!artisanProfile?.recipientCode) {
+    if (!providerProfile?.recipientCode) {
       return NextResponse.json(
         { error: "Bank details not configured. Update your profile first." },
         { status: 400 }
@@ -63,7 +63,7 @@ export async function POST(
         jobId: failedPayout.jobId,
         amount: failedPayout.amount,
         status: "PENDING",
-        recipientCode: artisanProfile.recipientCode,
+        recipientCode: providerProfile.recipientCode,
         reference: newRef,
       },
     });
@@ -71,7 +71,7 @@ export async function POST(
     try {
       const transfer = await initiateTransfer({
         amount: failedPayout.amount,
-        recipientCode: artisanProfile.recipientCode,
+        recipientCode: providerProfile.recipientCode,
         reference: newRef,
         reason: `Retry payout for ${job.title}`,
       });

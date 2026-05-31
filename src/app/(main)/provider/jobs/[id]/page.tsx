@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { AppContainer, StatusPill } from "@/components/ui/trustpoint-shell";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -317,7 +318,7 @@ function JobDetail() {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 px-4">
         <p className="text-sm text-muted-foreground">Job not found.</p>
-        <Link href="/artisan/dashboard">
+        <Link href="/provider/dashboard">
           <Button variant="outline">
             <ArrowLeft className="size-4" />
             Back to Your Jobs
@@ -328,53 +329,63 @@ function JobDetail() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
+    <AppContainer className="max-w-4xl">
       <div className="mb-6">
         <Link
-          href="/artisan/dashboard"
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          href="/provider/dashboard"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          Your Jobs
+          Protected Projects
         </Link>
       </div>
 
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold text-foreground">{job.title}</h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">{job.ref}</p>
+      <Card className="mb-6 border-brand-100 bg-white/95">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <StatusPill className="mb-3 bg-brand-50 text-brand-800">
+                <Shield className="size-3.5" />
+                Protected project
+              </StatusPill>
+              <h1 className="truncate text-2xl font-bold leading-tight text-foreground sm:text-3xl">{job.title}</h1>
+              <p className="mt-1 text-xs text-muted-foreground">{job.ref}</p>
+            </div>
+            <span
+              className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-medium ${getStatusStyle(job.status, job.approvedAt)}`}
+            >
+              {getStatusLabel(job.status, job.approvedAt)}
+            </span>
           </div>
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${getStatusStyle(job.status, job.approvedAt)}`}
-          >
-            {getStatusLabel(job.status, job.approvedAt)}
-          </span>
-        </div>
-        {job.description && (
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            {job.description}
-          </p>
-        )}
-        {job.clientEmail && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Mail className="size-3" />
-            Client email: {job.clientEmail}
-          </p>
-        )}
-        {job.expectedCompletionDate && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="size-3" />
-            Expected by {formattedCompletionDate}
-          </p>
-        )}
-        {pollRef.current && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
-            <Loader2 className="size-3 animate-spin" />
-            Checking for updates
+
+          {job.description && (
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
+              {job.description}
+            </p>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            {job.clientEmail && (
+              <p className="flex items-center gap-1.5">
+                <Mail className="size-3" />
+                Client email: {job.clientEmail}
+              </p>
+            )}
+            {job.expectedCompletionDate && (
+              <p className="flex items-center gap-1.5">
+                <Clock className="size-3" />
+                Expected by {formattedCompletionDate}
+              </p>
+            )}
+            {pollRef.current && (
+              <p className="flex items-center gap-1.5 text-amber-600">
+                <Loader2 className="size-3 animate-spin" />
+                Checking for updates
+              </p>
+            )}
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Link ready — share with client */}
       {job.clientUrl && job.status === "PENDING_PAYMENT" && (
@@ -754,7 +765,7 @@ function JobDetail() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </AppContainer>
   );
 }
 

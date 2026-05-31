@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "TrustPoint - Protected Payments for Real-World Work",
-  description: "A safer trust environment for artisans and clients to transact with confidence.",
+  title: "TrustPoint - Trust Assurance for Digital Services",
+  description: "A trust operating system for digital service providers and their clients. Protected payments for software developers, designers, and digital creators.",
   icons: [{ rel: "icon", url: "/logo.png" }],
 };
 

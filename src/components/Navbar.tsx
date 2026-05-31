@@ -12,7 +12,7 @@ import { Menu, X, LogOut } from "lucide-react";
 
 const navLinks = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/artisan/dashboard", label: "Your Jobs" },
+  { href: "/provider/dashboard", label: "Your Jobs" },
   { href: "/profile", label: "Profile" },
 ];
 
@@ -38,10 +38,10 @@ export default function Navbar() {
   if (!user || isAuthPage) return null;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/82 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <nav className="sticky top-0 z-50 border-b border-border/70 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <Image src="/logo.png" alt="TrustPoint" width={88} height={44} className="h-10 w-auto" priority />
+          <Image src="/logo.png" alt="TrustPoint" width={92} height={46} className="h-10 w-auto" priority />
         </Link>
 
         <Button
@@ -54,17 +54,17 @@ export default function Navbar() {
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </Button>
 
-        <div className="hidden items-center gap-1 sm:flex">
+        <div className="hidden items-center gap-1 rounded-lg border border-border/70 bg-white/70 p-1 sm:flex">
           {navLinks.map((link) => {
             const active = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                   active
                     ? "bg-brand-50 text-brand-800 shadow-sm"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    : "text-muted-foreground hover:bg-white hover:text-foreground"
                 }`}
               >
                 {link.label}
@@ -79,18 +79,18 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <div className="border-t border-border/70 bg-background/95 px-4 pb-4 pt-2 shadow-lg shadow-slate-900/5 sm:hidden">
+        <div className="border-t border-border/70 bg-white/95 px-4 pb-4 pt-2 shadow-lg shadow-slate-900/5 sm:hidden">
           {navLinks.map((link) => {
-            const active = pathname === link.href;
+            const active = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`block rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-brand-50 text-brand-800"
-                    : "text-muted-foreground hover:bg-accent"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 }`}
               >
                 {link.label}

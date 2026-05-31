@@ -38,28 +38,9 @@ export default function AdminDisputeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [resolving, setResolving] = useState(false);
-  const [confirm, setConfirm] = useState<"ARTISAN" | "CLIENT" | null>(null);
+  const [confirm, setConfirm] = useState<"PROVIDER" | "CLIENT" | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const res = await fetch("/api/admin/disputes");
-      if (!res.ok) throw new Error();
-      const list: DisputeDetail[] = await res.json();
-      const found = list.find((d) => d.id === id);
-      if (!found) throw new Error("Not found");
-      setDispute(found);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, [id]);
-
-  const handleResolve = async (resolution: "ARTISAN" | "CLIENT") => {
+  const handleResolve = async (resolution: "PROVIDER" | "CLIENT") => {
     setConfirm(null);
     setResolving(true);
     try {
@@ -70,7 +51,7 @@ export default function AdminDisputeDetailPage() {
         },
         body: JSON.stringify({
           resolution,
-          note: resolution === "ARTISAN" ? "Resolved in favor of artisan" : "Resolved in favor of client — refund issued",
+          note: resolution === "PROVIDER" ? "Resolved in favor of provider" : "Resolved in favor of client — refund issued",
         }),
       });
       if (!res.ok) {
@@ -78,8 +59,8 @@ export default function AdminDisputeDetailPage() {
         throw new Error(err.error ?? "Resolve failed");
       }
       toast.success(
-        resolution === "ARTISAN"
-          ? "Payment released to artisan"
+        resolution === "PROVIDER"
+          ? "Payment released to provider"
           : "Refund issued to client"
       );
       router.push("/admin/disputes");
@@ -134,7 +115,7 @@ export default function AdminDisputeDetailPage() {
           <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
             dispute.status === "OPEN" ? "bg-red-50 text-red-700" :
             dispute.status === "UNDER_REVIEW" ? "bg-amber-50 text-amber-700" :
-            dispute.status === "RESOLVED_ARTISAN" ? "bg-emerald-50 text-emerald-700" :
+            dispute.status === "RESOLVED_PROVIDER" ? "bg-emerald-50 text-emerald-700" :
             dispute.status === "RESOLVED_CLIENT" ? "bg-blue-50 text-blue-700" :
             "bg-muted text-muted-foreground"
           }`}>
@@ -206,12 +187,12 @@ export default function AdminDisputeDetailPage() {
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Resolve</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
-              onClick={() => setConfirm("ARTISAN")}
+              onClick={() => setConfirm("PROVIDER")}
               disabled={resolving}
               className="w-full"
             >
               <CheckCircle2 className="size-4" />
-              Release to Artisan
+              Release to Provider
             </Button>
             <Button
               onClick={() => setConfirm("CLIENT")}
@@ -236,18 +217,15 @@ export default function AdminDisputeDetailPage() {
                     <AlertTriangle className="size-4" />
                   </div>
                   <h3 className="text-sm font-medium text-foreground">
-                    {confirm === "ARTISAN" ? "Release payment?" : "Refund to client?"}
+                    {confirm === "PROVIDER" ? "Release to provider?" : "Refund to client?"}
                   </h3>
                 </div>
-                <button onClick={() => setConfirm(null)} className="text-muted-foreground hover:text-foreground">
-                  <X className="size-4" />
-                </button>
-              </div>
-              <p className="mb-5 text-sm text-muted-foreground">
-                {confirm === "ARTISAN"
-                  ? "The escrowed amount will be transferred to the artisan's bank account."
+                <p className="mb-5 text-sm text-muted-foreground">
+                  {confirm === "PROVIDER"
+                  ? "The escrowed amount will be transferred to the provider's bank account."
                   : "The payment will be refunded to the client's original payment method via Paystack."}
               </p>
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setConfirm(null)} className="flex-1">
                   Cancel

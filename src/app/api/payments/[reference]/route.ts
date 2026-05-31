@@ -2,12 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createPaymentLink, recordPaymentReference } from "@/lib/paystack";
 import { generateRef } from "@/lib/security/tokens";
+import { getUserFromToken } from "@/lib/auth-server";
+import { verifyClientAccessToken } from "@/lib/security/tokens";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ reference: string }> }
 ) {
   try {
+    const authHeader = req.headers.get("authorization");
+    const bearerToken = authHeader?.replace("Bearer ", "");
+    const queryToken = req.nextUrl.searchParams.get("token");
+
+    if (!bearerToken && !queryToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (bearerToken) {
+      const user = await getUserFromToken(bearerToken);
+      if (!user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
+    if (queryToken) {
+      try {
+        verifyClientAccessToken(queryToken);
+      } catch {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
+
     const { reference } = await params;
 
     const job = await prisma.job.findUnique({
@@ -17,7 +42,7 @@ export async function GET(
         amount: true,
         fee: true,
         clientToken: true,
-        artisan: { select: { email: true } },
+        provider: { select: { email: true } },
       },
     });
 
@@ -39,10 +64,10 @@ export async function GET(
     }
 
     const ref = generateRef("PAY");
-    const callbackUrl = `${_req.nextUrl.origin}/client/job/${job.clientToken ?? ""}`;
+    const callbackUrl = `${req.nextUrl.origin}/client/job/${job.clientToken ?? ""}`;
     const link = await createPaymentLink({
       amount: job.amount + job.fee,
-      email: job.artisan.email ?? "customer@trustpoint.app",
+      email: job.provider.email ?? "customer@trustpoint.app",
       reference: ref,
       callbackUrl,
     });

@@ -4,7 +4,7 @@ import { getUserFromToken } from "@/lib/auth-server";
 import { createTransferRecipient, resolveBankAccount } from "@/lib/paystack";
 
 function getUser(req: NextRequest) {
-  const authHeader = req.headers.get("Authorization");
+  const authHeader = req.headers.get("authorization");
   const token = authHeader?.replace("Bearer ", "");
   if (!token) return null;
   return getUserFromToken(token);
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const user = await getUser(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const profile = await prisma.artisanProfile.findUnique({ where: { userId: user.id } });
+    const profile = await prisma.providerProfile.findUnique({ where: { userId: user.id } });
     if (!profile || !profile.bankCode) {
       return NextResponse.json({ bankDetails: null });
     }
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Could not create payment recipient." }, { status: 500 });
     }
 
-    await prisma.artisanProfile.upsert({
+    await prisma.providerProfile.upsert({
       where: { userId: user.id },
       create: {
         userId: user.id,

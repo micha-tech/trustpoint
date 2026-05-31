@@ -22,9 +22,9 @@ export async function POST(
     const body = await req.json();
     const { resolution, note } = body;
 
-    if (!resolution || !["ARTISAN", "CLIENT"].includes(resolution)) {
+    if (!resolution || !["PROVIDER", "CLIENT"].includes(resolution)) {
       return NextResponse.json(
-        { error: "Resolution must be ARTISAN or CLIENT" },
+        { error: "Resolution must be PROVIDER or CLIENT" },
         { status: 400 }
       );
     }
@@ -35,7 +35,7 @@ export async function POST(
         job: {
           include: {
             escrow: true,
-            artisan: { include: { artisanProfile: true } },
+            provider: { include: { providerProfile: true } },
           },
         },
       },
@@ -59,10 +59,10 @@ export async function POST(
       return NextResponse.json({ error: "No escrow found for this job" }, { status: 400 });
     }
 
-    if (resolution === "ARTISAN") {
-      if (!job.artisan?.artisanProfile?.recipientCode) {
+    if (resolution === "PROVIDER") {
+      if (!job.provider?.providerProfile?.recipientCode) {
         return NextResponse.json(
-          { error: "Artisan has no payout recipient configured" },
+          { error: "Provider has no payout recipient configured" },
           { status: 400 }
         );
       }
@@ -76,8 +76,8 @@ export async function POST(
         const disputeClaim = await tx.dispute.updateMany({
           where: { id: dispute.id, status: { in: ["OPEN", "UNDER_REVIEW"] } },
           data: {
-            status: "RESOLVED_ARTISAN",
-            resolution: note ?? "Resolved in favor of artisan",
+            status: "RESOLVED_PROVIDER",
+            resolution: note ?? "Resolved in favor of provider",
             resolvedAt: new Date(),
           },
         });
@@ -103,8 +103,8 @@ export async function POST(
         jobId: job.id,
         event: "escrow.released",
         amount: releaseAmount,
-        reference: `RESOLVE-ARTISAN-${job.ref}`,
-        metadata: { disputeId: dispute.id, resolution: "ARTISAN" },
+        reference: `RESOLVE-PROVIDER-${job.ref}`,
+        metadata: { disputeId: dispute.id, resolution: "PROVIDER" },
       });
 
       const payoutRef = generateRef("PO");
@@ -113,7 +113,7 @@ export async function POST(
           jobId: job.id,
           amount: releaseAmount,
           status: "PENDING",
-          recipientCode: job.artisan.artisanProfile.recipientCode,
+          recipientCode: job.provider.providerProfile.recipientCode,
           reference: payoutRef,
         },
       });
@@ -121,7 +121,7 @@ export async function POST(
       try {
         const transfer = await initiateTransfer({
           amount: releaseAmount,
-          recipientCode: job.artisan.artisanProfile.recipientCode,
+          recipientCode: job.provider.providerProfile.recipientCode,
           reference: payoutRef,
           reason: `Dispute resolution — payout for ${job.title}`,
         });

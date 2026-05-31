@@ -14,8 +14,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Image from "next/image";
 import { Loader2, LockKeyhole, Eye, EyeOff } from "lucide-react";
+import { AuthShell } from "@/components/AuthShell";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -132,22 +132,18 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute -left-32 -top-32 size-96 rounded-full bg-brand-500/8 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 size-96 rounded-full bg-brand-500/8 blur-3xl" />
-      </div>
-
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-            <Image src="/logo.png" alt="TrustPoint" width={112} height={56} className="mx-auto h-12 w-auto" priority />
+    <AuthShell
+      title="Create your TrustPoint account"
+      subtitle="Start sending protected payment links with milestones, evidence, and client approvals."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-brand-600 hover:text-brand-700">
+            Sign in
           </Link>
-          <h1 className="mt-5 text-xl font-bold text-foreground">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start protecting your transactions</p>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        </>
+      }
+    >
           <form onSubmit={handleEmailSignUp} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -263,15 +259,6 @@ export default function RegisterPage() {
             )}
             Sign up with Google
           </Button>
-        </div>
-
-        <p className="mt-5 text-center text-xs text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

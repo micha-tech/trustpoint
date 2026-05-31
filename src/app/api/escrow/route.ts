@@ -14,9 +14,9 @@ export async function GET(req: NextRequest) {
 
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      select: { clientId: true, artisanId: true },
+      select: { clientId: true, providerId: true },
     });
-    if (!job || (job.clientId !== user.id && job.artisanId !== user.id)) {
+    if (!job || (job.clientId !== user.id && job.providerId !== user.id)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
