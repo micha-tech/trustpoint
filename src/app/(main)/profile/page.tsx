@@ -91,35 +91,35 @@ function ProfileContent() {
 
   return (
     <AppContainer className="max-w-5xl">
-      <div className="mb-6">
+      <div className="mb-5 sm:mb-6">
         <StatusPill className="mb-3 bg-brand-50 text-brand-800">
           <User className="size-3.5" />
           Trust Profile
         </StatusPill>
-        <h1 className="text-2xl font-bold leading-tight text-foreground sm:text-3xl">Account and payout readiness</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        <h1 className="text-xl font-bold leading-tight text-foreground sm:text-3xl">Account and payout readiness</h1>
+        <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground sm:mt-2">
           Keep your identity and settlement destination up to date before clients approve work.
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+      <div className="mx-auto max-w-2xl space-y-5">
         <Card>
-          <CardContent className="p-5">
-            <div className="mb-5 flex items-center gap-4">
-              <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-lg font-bold text-white shadow-sm shadow-brand-800/20">
+          <CardContent className="p-4 sm:p-5">
+            <div className="mb-4 flex items-center gap-3 sm:gap-4">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-base font-bold text-white shadow-sm shadow-brand-800/20 sm:size-14 sm:text-lg">
                 {initial}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-base font-bold text-foreground">{user?.email ?? user?.phoneNumber ?? "TrustPoint user"}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Workspace owner</p>
+                <p className="truncate text-sm font-bold text-foreground sm:text-base">{user?.email ?? user?.phoneNumber ?? "TrustPoint user"}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Workspace owner</p>
               </div>
             </div>
 
             <div className="divide-y divide-border rounded-lg border border-border/75">
               {details.map((d) => (
-                <div key={d.label} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="text-sm text-muted-foreground">{d.label}</span>
-                  <span className="min-w-0 truncate text-right text-sm font-medium text-foreground">{d.value}</span>
+                <div key={d.label} className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+                  <span className="text-xs text-muted-foreground sm:text-sm">{d.label}</span>
+                  <span className="min-w-0 truncate text-right text-xs font-medium text-foreground sm:text-sm">{d.value}</span>
                 </div>
               ))}
             </div>
@@ -127,15 +127,15 @@ function ProfileContent() {
         </Card>
 
         <Card>
-          <CardContent className="p-5 sm:p-6">
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-                  <Landmark className="size-4" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2.5 sm:gap-2">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700 sm:size-9">
+                  <Landmark className="size-3.5 sm:size-4" />
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">Payout Bank Account</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">Used when approved funds are released.</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Used when approved funds are released.</p>
                 </div>
               </div>
               {bankDetails && (
@@ -147,18 +147,18 @@ function ProfileContent() {
             </div>
 
             {loadingBanks || loadingDetails ? (
-              <div className="flex justify-center py-10">
+              <div className="flex justify-center py-8 sm:py-10">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {bankDetails && (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                    <div className="flex items-start gap-3">
-                      <ShieldCheck className="mt-0.5 size-4 text-emerald-700" />
-                      <div>
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-700 sm:size-4" />
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-emerald-900">{bankDetails.accountName}</p>
-                        <p className="mt-1 text-xs leading-5 text-emerald-700">
+                        <p className="mt-0.5 text-xs leading-5 text-emerald-700 sm:mt-1">
                           {bankDetails.bankName} - {bankDetails.bankAccount}
                         </p>
                       </div>
@@ -166,14 +166,14 @@ function ProfileContent() {
                   </div>
                 )}
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="bank">Bank</Label>
+                <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="bank" className="text-xs sm:text-sm">Bank</Label>
                     <select
                       id="bank"
                       value={selectedBank}
                       onChange={(e) => setSelectedBank(e.target.value)}
-                      className="flex h-11 w-full rounded-lg border border-input bg-card/95 px-3 py-2 text-sm focus-visible:border-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                      className="flex h-10 w-full rounded-lg border border-input bg-card/95 px-3 py-2 text-sm focus-visible:border-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 sm:h-11"
                     >
                       <option value="">Select a bank</option>
                       {banks.map((b) => (
@@ -182,8 +182,8 @@ function ProfileContent() {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="accountNumber">Account Number</Label>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label htmlFor="accountNumber" className="text-xs sm:text-sm">Account Number</Label>
                     <Input
                       id="accountNumber"
                       type="text"
@@ -192,6 +192,7 @@ function ProfileContent() {
                       placeholder="0123456789"
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>

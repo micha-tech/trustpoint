@@ -17,7 +17,7 @@ export async function POST(
     const { id, milestoneId } = await params;
 
     const job = await prisma.job.findFirst({
-      where: { id, artisanId: user.id },
+      where: { id, providerId: user.id },
       include: {
         escrow: true,
         provider: { select: { name: true } },

@@ -15,7 +15,7 @@ export async function GET(
     const { id } = await params;
 
     const job = await prisma.job.findFirst({
-      where: { id, OR: [{ clientId: user.id }, { artisanId: user.id }] },
+      where: { id, OR: [{ clientId: user.id }, { providerId: user.id }] },
       include: {
         escrow: true,
         client: { select: { name: true, email: true, phone: true } },

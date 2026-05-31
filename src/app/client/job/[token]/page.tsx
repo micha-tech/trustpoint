@@ -160,7 +160,10 @@ export default function ClientJobPage() {
   const verifyPayment = useCallback(async (ref: string) => {
     setVerifyingPayment(true);
     try {
-      const res = await fetch(`/api/payments/${ref}/verify`, { method: "POST" });
+      const clientVerification = sessionStorage.getItem(`${VERIFICATION_TOKEN_PREFIX}${token}`);
+      const headers: Record<string, string> = {};
+      if (clientVerification) headers["x-client-verification"] = clientVerification;
+      const res = await fetch(`/api/payments/${ref}/verify`, { method: "POST", headers });
       const body = await res.json();
       if (res.ok) {
         toast.success("Payment confirmed");
@@ -660,7 +663,7 @@ export default function ClientJobPage() {
                   </Button>
                 ) : (
                   <Button className="w-full" asChild>
-                    <a href={`/api/payments/${data.ref}`}>
+                    <a href={`/api/payments/${data.ref}?token=${token}`}>
                       <Lock className="size-4" />
                       Pay securely
                     </a>

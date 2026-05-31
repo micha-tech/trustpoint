@@ -19,7 +19,7 @@ const proofPoints = [
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
     <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_25rem]">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl min-w-0 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_25rem]">
         <section className="hidden lg:block">
           <Link href="/" className="inline-flex transition-opacity hover:opacity-85">
             <Image src="/logo.png" alt="TrustPoint" width={156} height={78} className="h-14 w-auto" priority />
@@ -45,14 +45,14 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
           </div>
         </section>
 
-        <section className="w-full">
+        <section className="w-full min-w-0">
           <div className="mb-6 text-center lg:hidden">
             <Link href="/" className="inline-block transition-opacity hover:opacity-85">
               <Image src="/logo.png" alt="TrustPoint" width={124} height={62} className="mx-auto h-12 w-auto" priority />
             </Link>
           </div>
 
-          <div className="rounded-lg border border-border/75 bg-white/95 p-5 shadow-xl shadow-brand-900/10 sm:p-6">
+          <div className="min-w-0 overflow-hidden rounded-lg border border-border/75 bg-white/95 p-5 shadow-xl shadow-brand-900/10 sm:p-6">
             <div className="mb-6">
               <h1 className="text-2xl font-bold leading-tight text-foreground">{title}</h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{subtitle}</p>

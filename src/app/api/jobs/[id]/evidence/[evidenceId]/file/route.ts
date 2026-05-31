@@ -15,7 +15,7 @@ export async function GET(
     const { id, evidenceId } = await params;
 
     const job = await prisma.job.findFirst({
-      where: { id, OR: [{ clientId: user.id }, { artisanId: user.id }] },
+      where: { id, OR: [{ clientId: user.id }, { providerId: user.id }] },
     });
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
