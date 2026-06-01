@@ -3,14 +3,15 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { TrustPointLogo } from "@/components/TrustPointLogo";
 import { toast } from "sonner";
 import {
   Shield,
+  ShieldCheck,
   CheckCircle2,
   Lock,
   Clock,
@@ -22,6 +23,13 @@ import {
   ListChecks,
   Paperclip,
   Eye,
+  Waypoints,
+  FileText,
+  Search,
+  ArrowRight,
+  User,
+  Calendar,
+  Wallet,
 } from "lucide-react";
 import { getMilestoneLabel, getMilestoneStyle } from "@/lib/job-status";
 
@@ -106,6 +114,7 @@ export default function ClientJobPage() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<ClientJob | null>(null);
   const [viewState, setViewState] = useState<ViewState>("loading");
+  const [flowStep, setFlowStep] = useState<"intro" | "overview" | "job">("intro");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
@@ -352,7 +361,7 @@ export default function ClientJobPage() {
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-6 sm:px-6">
       <div className="mb-6 text-center">
         <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-          <Image src="/logo.png" alt="TrustPoint" width={128} height={64} className="mx-auto h-12 w-auto sm:h-14" priority />
+          <TrustPointLogo className="mx-auto w-[11.5rem] sm:w-[13rem]" priority sizes="(max-width: 640px) 11.5rem, 13rem" />
         </Link>
       </div>
 
@@ -514,72 +523,132 @@ export default function ClientJobPage() {
 
       {viewState === "verified" && data && (
         <>
-          {jobViewState !== "dispute" && jobViewState !== "error" && (
-            <div className="mb-4 rounded-xl bg-brand-50 p-3 text-center text-xs text-brand-700">
-              <Shield className="mx-auto mb-1 size-4" />
-              Your payment will only be released when work is confirmed.
-            </div>
-          )}
-
-          {pollRef.current && (
-            <div className="mb-4 flex items-center justify-center gap-1.5 text-xs text-amber-600">
-              <Loader2 className="size-3 animate-spin" />
-              Checking for provider updates...
-            </div>
-          )}
-
-          <Card className="mb-4">
-            <CardContent className="p-5">
-              <p className="mb-1 text-xs text-muted-foreground">{data.ref}</p>
-              <h1 className="text-lg font-bold text-foreground">{data.title}</h1>
-              {data.description && (
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{data.description}</p>
-              )}
-              <div className="mt-4 space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Provider</span>
-                  <span className="font-medium text-foreground">
-                    {data.provider?.name ?? "Assigned"}
-                  </span>
+          {flowStep === "intro" && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+                  <ShieldCheck className="size-8" />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total</span>
-                  <span className="font-semibold text-foreground">{formattedAmount}</span>
-                </div>
-                {formattedDate && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Completion</span>
-                    <span className="text-foreground">{formattedDate}</span>
-                  </div>
-                )}
+                <h1 className="text-xl font-bold text-foreground">Your payment is protected</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  TrustPoint holds your funds securely and only releases them when you confirm the work is complete.
+                </p>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Milestones */}
-          {data.milestones && data.milestones.length > 0 && (
-            <Card className="mb-4">
-              <CardContent className="p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <ListChecks className="size-4 text-brand-600" />
-                  <h3 className="text-sm font-medium text-foreground">Milestones</h3>
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {data.milestones.filter((m) => ["APPROVED", "RELEASED"].includes(m.status)).length}/{data.milestones.length} released
-                  </span>
+              <div className="rounded-xl border bg-card p-4">
+                <div className="mb-3 text-center">
+                  <p className="text-xs text-muted-foreground">{data.ref}</p>
+                  <h2 className="mt-0.5 text-base font-semibold text-foreground">{data.title}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    by {data.provider?.name ?? "Your provider"}
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  {data.milestones.map((m) => {
-                    const needsApproval = m.status === "COMPLETED";
-                    return (
-                      <div
-                        key={m.id}
-                        className={`rounded-lg border p-3 ${
-                          needsApproval ? "border-amber-200 bg-amber-50/50" :
-                          m.status === "APPROVED" || m.status === "RELEASED" ? "border-emerald-200 bg-emerald-50/50" :
-                          ""
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <ShieldCheck className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Funds verified before work begins</p>
+                    <p className="text-xs text-muted-foreground">Your payment is securely held until milestones are completed</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <Waypoints className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Milestones tracked transparently</p>
+                    <p className="text-xs text-muted-foreground">Work is broken into clear phases with defined deliverables</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <FileText className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Deliverables recorded</p>
+                    <p className="text-xs text-muted-foreground">All completed work and evidence is stored and accessible</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <Search className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Disputes documented</p>
+                    <p className="text-xs text-muted-foreground">Any issues are formally recorded for fair resolution</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <Lock className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Payment released only with your approval</p>
+                    <p className="text-xs text-muted-foreground">You approve each milestone before funds are released</p>
+                  </div>
+                </div>
+              </div>
+
+              <Button className="w-full" onClick={() => setFlowStep("overview")}>
+                View project details
+                <ArrowRight className="size-4" />
+              </Button>
+            </div>
+          )}
+
+          {flowStep === "overview" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setFlowStep("intro")}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  &larr; Back
+                </button>
+              </div>
+
+              <Card>
+                <CardContent className="p-5">
+                  <p className="mb-1 text-xs text-muted-foreground">{data.ref}</p>
+                  <h1 className="text-lg font-bold text-foreground">{data.title}</h1>
+                  {data.description && (
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{data.description}</p>
+                  )}
+                  <div className="mt-4 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Provider</span>
+                      <span className="font-medium text-foreground">
+                        {data.provider?.name ?? "Assigned"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="font-semibold text-foreground">{formattedAmount}</span>
+                    </div>
+                    {formattedDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Completion</span>
+                        <span className="text-foreground">{formattedDate}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {data.milestones && data.milestones.length > 0 && (
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <ListChecks className="size-4 text-brand-600" />
+                      <h3 className="text-sm font-medium text-foreground">Milestones</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {data.milestones.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between rounded-lg border p-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-foreground">{m.title}</p>
                             <p className="text-xs text-muted-foreground">
@@ -590,325 +659,429 @@ export default function ClientJobPage() {
                             {getMilestoneLabel(m.status)}
                           </span>
                         </div>
-                        {needsApproval && jobViewState !== "dispute" && (
-                          <Button
-                            onClick={() => handleApproveMilestone(m.id)}
-                            disabled={approving === m.id}
-                            className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            {approving === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                            Approve milestone
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Evidence from provider */}
-          {clientEvidence.length > 0 && (
-            <Card className="mb-4">
-              <CardContent className="p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <Paperclip className="size-4 text-brand-600" />
-                  <h3 className="text-sm font-medium text-foreground">Evidence</h3>
-                  <span className="ml-auto text-xs text-muted-foreground">{clientEvidence.length} file{clientEvidence.length !== 1 ? "s" : ""}</span>
-                </div>
-                <div className="space-y-2">
-                  {clientEvidence.map((ev) => {
-                    const isImage = ev.fileType.startsWith("image/");
-                    const fileUrl = `/api/jobs/client/${token}/evidence/${ev.id}/file`;
-                    return (
-                      <a
-                        key={ev.id}
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                      >
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                          {isImage ? <Eye className="size-4" /> : <Paperclip className="size-4" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">{ev.fileName}</p>
-                          {ev.description && <p className="truncate text-xs text-muted-foreground">{ev.description}</p>}
-                          <p className="text-xs text-muted-foreground">{(ev.fileSize / 1024).toFixed(0)} KB</p>
-                        </div>
-                        <span className="shrink-0 text-xs text-brand-600">View</span>
-                      </a>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {jobViewState === "payment" && (
-            <Card className="mb-4 border-brand-200">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center gap-2">
-                  <Clock className="size-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-700">Awaiting payment</span>
-                </div>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  TrustPoint securely holds payment until the job is approved.
-                </p>
-                {verifyingPayment ? (
-                  <Button className="w-full" disabled>
-                    <Loader2 className="size-4 animate-spin" />
-                    Confirming payment...
-                  </Button>
-                ) : (
-                  <Button className="w-full" asChild>
-                    <a href={`/api/payments/${data.ref}?token=${token}`}>
-                      <Lock className="size-4" />
-                      Pay securely
-                    </a>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {jobViewState === "success" && (
-            <Card className="mb-4 border-emerald-200 bg-emerald-50">
-              <CardContent className="space-y-3 p-5 text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <Shield className="size-6" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-emerald-900">Payment secured</h2>
-                  <p className="mt-1 text-sm text-emerald-700">
-                    You&apos;re all set. The provider has been notified.
-                  </p>
-                </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-200/50 px-3 py-1 text-xs font-medium text-emerald-800">
-                  <CheckCircle2 className="size-3" />
-                  Protected by TrustPoint
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Dispute section — only shown when viewing a disputed job */}
-          {jobViewState === "dispute" && (
-            <Card className="mb-4 border-orange-200">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-                    <AlertTriangle className="size-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-medium text-orange-900">This project has been placed under review</h2>
-                    <p className="text-xs text-orange-700">
-                      TrustPoint will review the issue before payment is released.
-                    </p>
-                  </div>
-                </div>
-                {!data.approvedAt && (
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="dispute-reason">Briefly describe the issue</Label>
-                      <textarea
-                        id="dispute-reason"
-                        rows={3}
-                        maxLength={500}
-                        placeholder="Briefly describe the issue."
-                        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={disputeReason}
-                        onChange={(e) => setDisputeReason(e.target.value)}
-                      />
+                      ))}
                     </div>
-                    <Button
-                      onClick={() => setShowDisputeConfirm(true)}
-                      disabled={submittingDispute || !disputeReason.trim()}
-                      className="w-full"
-                    >
-                      {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
-                      Submit Issue
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              )}
 
-          {/* Report an Issue — always available when milestones need approval */}
-          {jobViewState === "approval" && data.milestones?.some((m) => m.status === "COMPLETED") && (
-            <Card className="mb-4 border-amber-200">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                    <Clock className="size-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-medium text-amber-900">Milestones awaiting review</h2>
-                    <p className="text-xs text-amber-700">Review each milestone and approve payment when satisfied.</p>
-                  </div>
-                </div>
-                {!showDisputeForm ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDisputeForm(true)}
-                    className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
-                  >
-                    <AlertTriangle className="size-4" />
-                    Report an issue
-                  </Button>
-                ) : (
-                  <div id="approval-dispute-form" className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
-                      <textarea
-                        id="approval-dispute-reason"
-                        rows={3}
-                        maxLength={500}
-                        placeholder="Briefly describe the issue."
-                        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={disputeReason}
-                        onChange={(e) => setDisputeReason(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setShowDisputeConfirm(true)}
-                        disabled={submittingDispute || !disputeReason.trim()}
-                        className="flex-1"
-                      >
-                        {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
-                        Submit Issue
-                      </Button>
-                      <Button variant="outline" onClick={() => { setShowDisputeForm(false); setDisputeReason(""); }}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Ready to release — all milestones approved, waiting for manual release or 48h auto-release */}
-          {jobViewState === "ready_to_release" && (
-            <Card className="mb-4 border-blue-200 bg-blue-50">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                    <CheckCircle2 className="size-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-medium text-blue-900">All milestones approved</h2>
-                    <p className="text-xs text-blue-700">Release payment to the provider or wait for auto-release.</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleReleasePayment}
-                  disabled={releasing}
-                  className="w-full"
-                >
-                  {releasing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-                  Release payment now
+              {jobViewState === "payment" && (
+                <Button className="w-full" asChild>
+                  <a href={`/api/payments/${data.ref}?token=${token}`}>
+                    <Lock className="size-4" />
+                    Fund Project Securely
+                  </a>
                 </Button>
+              )}
 
-                {data?.allApprovedAt && (
-                  <AutoReleaseCountdown allApprovedAt={data.allApprovedAt} />
-                )}
-
-                <div className="border-t border-blue-200 pt-3">
-                  {!showDisputeForm ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowDisputeForm(true)}
-                      className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
-                    >
-                      <AlertTriangle className="size-4" />
-                      Report an issue
-                    </Button>
-                  ) : (
-                    <div id="approval-dispute-form" className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
-                        <textarea
-                          id="approval-dispute-reason"
-                          rows={3}
-                          maxLength={500}
-                          placeholder="Briefly describe the issue."
-                          className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          value={disputeReason}
-                          onChange={(e) => setDisputeReason(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => setShowDisputeConfirm(true)}
-                          disabled={submittingDispute || !disputeReason.trim()}
-                          className="flex-1"
-                        >
-                          {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
-                          Submit Issue
-                        </Button>
-                        <Button variant="outline" onClick={() => { setShowDisputeForm(false); setDisputeReason(""); }}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              {jobViewState !== "payment" && (
+                <Button className="w-full" onClick={() => setFlowStep("job")}>
+                  {jobViewState === "dispute" ? "View dispute details" : "Continue to project"}
+                  <ArrowRight className="size-4" />
+                </Button>
+              )}
+            </div>
           )}
 
-          {showDisputeConfirm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-              <Card className="w-full max-w-sm">
+          {flowStep === "job" && (
+            <>
+              {jobViewState !== "dispute" && jobViewState !== "error" && (
+                <div className="mb-4 rounded-xl bg-brand-50 p-3 text-center text-xs text-brand-700">
+                  <Shield className="mx-auto mb-1 size-4" />
+                  Your payment will only be released when work is confirmed.
+                </div>
+              )}
+
+              {pollRef.current && (
+                <div className="mb-4 flex items-center justify-center gap-1.5 text-xs text-amber-600">
+                  <Loader2 className="size-3 animate-spin" />
+                  Checking for provider updates...
+                </div>
+              )}
+
+              <Card className="mb-4">
                 <CardContent className="p-5">
-                  <div className="mb-4 flex items-start justify-between">
+                  <p className="mb-1 text-xs text-muted-foreground">{data.ref}</p>
+                  <h1 className="text-lg font-bold text-foreground">{data.title}</h1>
+                  {data.description && (
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{data.description}</p>
+                  )}
+                  <div className="mt-4 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Provider</span>
+                      <span className="font-medium text-foreground">
+                        {data.provider?.name ?? "Assigned"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="font-semibold text-foreground">{formattedAmount}</span>
+                    </div>
+                    {formattedDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Completion</span>
+                        <span className="text-foreground">{formattedDate}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Milestones */}
+              {data.milestones && data.milestones.length > 0 && (
+                <Card className="mb-4">
+                  <CardContent className="p-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <ListChecks className="size-4 text-brand-600" />
+                      <h3 className="text-sm font-medium text-foreground">Milestones</h3>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {data.milestones.filter((m) => ["APPROVED", "RELEASED"].includes(m.status)).length}/{data.milestones.length} released
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {data.milestones.map((m) => {
+                        const needsApproval = m.status === "COMPLETED";
+                        return (
+                          <div
+                            key={m.id}
+                            className={`rounded-lg border p-3 ${
+                              needsApproval ? "border-amber-200 bg-amber-50/50" :
+                              m.status === "APPROVED" || m.status === "RELEASED" ? "border-emerald-200 bg-emerald-50/50" :
+                              ""
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-foreground">{m.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  ₦{(m.amount / 100).toLocaleString()}
+                                </p>
+                              </div>
+                              <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${getMilestoneStyle(m.status)}`}>
+                                {getMilestoneLabel(m.status)}
+                              </span>
+                            </div>
+                            {needsApproval && jobViewState !== "dispute" && (
+                              <Button
+                                onClick={() => handleApproveMilestone(m.id)}
+                                disabled={approving === m.id}
+                                className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                {approving === m.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                                Approve milestone
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Evidence from provider */}
+              {clientEvidence.length > 0 && (
+                <Card className="mb-4">
+                  <CardContent className="p-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Paperclip className="size-4 text-brand-600" />
+                      <h3 className="text-sm font-medium text-foreground">Evidence</h3>
+                      <span className="ml-auto text-xs text-muted-foreground">{clientEvidence.length} file{clientEvidence.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {clientEvidence.map((ev) => {
+                        const isImage = ev.fileType.startsWith("image/");
+                        const fileUrl = `/api/jobs/client/${token}/evidence/${ev.id}/file`;
+                        return (
+                          <a
+                            key={ev.id}
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                          >
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                              {isImage ? <Eye className="size-4" /> : <Paperclip className="size-4" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">{ev.fileName}</p>
+                              {ev.description && <p className="truncate text-xs text-muted-foreground">{ev.description}</p>}
+                              <p className="text-xs text-muted-foreground">{(ev.fileSize / 1024).toFixed(0)} KB</p>
+                            </div>
+                            <span className="shrink-0 text-xs text-brand-600">View</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {jobViewState === "payment" && (
+                <Card className="mb-4 border-brand-200">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-center gap-2">
+                      <Clock className="size-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700">Awaiting payment</span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      TrustPoint securely holds payment until the job is approved.
+                    </p>
+                    {verifyingPayment ? (
+                      <Button className="w-full" disabled>
+                        <Loader2 className="size-4 animate-spin" />
+                        Confirming payment...
+                      </Button>
+                    ) : (
+                      <Button className="w-full" asChild>
+                        <a href={`/api/payments/${data.ref}?token=${token}`}>
+                          <Lock className="size-4" />
+                          Pay securely
+                        </a>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {jobViewState === "success" && (
+                <Card className="mb-4 border-emerald-200 bg-emerald-50">
+                  <CardContent className="space-y-3 p-5 text-center">
+                    <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                      <Shield className="size-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-emerald-900">Payment secured</h2>
+                      <p className="mt-1 text-sm text-emerald-700">
+                        You&apos;re all set. The provider has been notified.
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-200/50 px-3 py-1 text-xs font-medium text-emerald-800">
+                      <CheckCircle2 className="size-3" />
+                      Protected by TrustPoint
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Dispute section — only shown when viewing a disputed job */}
+              {jobViewState === "dispute" && (
+                <Card className="mb-4 border-orange-200">
+                  <CardContent className="space-y-4 p-5">
                     <div className="flex items-center gap-2">
                       <div className="flex size-8 items-center justify-center rounded-full bg-orange-100 text-orange-600">
                         <AlertTriangle className="size-4" />
                       </div>
-                      <h3 className="text-sm font-medium text-foreground">Submit issue?</h3>
+                      <div>
+                        <h2 className="text-sm font-medium text-orange-900">This project has been placed under review</h2>
+                        <p className="text-xs text-orange-700">
+                          TrustPoint will review the issue before payment is released.
+                        </p>
+                      </div>
                     </div>
-                    <button onClick={() => setShowDisputeConfirm(false)} className="text-muted-foreground hover:text-foreground">
-                      <X className="size-4" />
-                    </button>
-                  </div>
-                  <p className="mb-5 text-sm text-muted-foreground">
-                    This will pause the payment process. TrustPoint will review both sides before releasing funds.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowDisputeConfirm(false)} className="flex-1">Cancel</Button>
-                    <Button onClick={confirmDispute} disabled={submittingDispute} className="flex-1">
-                      {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : "Submit Issue"}
+                    {!data.approvedAt && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="dispute-reason">Briefly describe the issue</Label>
+                          <textarea
+                            id="dispute-reason"
+                            rows={3}
+                            maxLength={500}
+                            placeholder="Briefly describe the issue."
+                            className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            value={disputeReason}
+                            onChange={(e) => setDisputeReason(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => setShowDisputeConfirm(true)}
+                          disabled={submittingDispute || !disputeReason.trim()}
+                          className="w-full"
+                        >
+                          {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
+                          Submit Issue
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Report an Issue — always available when milestones need approval */}
+              {jobViewState === "approval" && data.milestones?.some((m) => m.status === "COMPLETED") && (
+                <Card className="mb-4 border-amber-200">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                        <Clock className="size-4" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-medium text-amber-900">Milestones awaiting review</h2>
+                        <p className="text-xs text-amber-700">Review each milestone and approve payment when satisfied.</p>
+                      </div>
+                    </div>
+                    {!showDisputeForm ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowDisputeForm(true)}
+                        className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+                      >
+                        <AlertTriangle className="size-4" />
+                        Report an issue
+                      </Button>
+                    ) : (
+                      <div id="approval-dispute-form" className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
+                          <textarea
+                            id="approval-dispute-reason"
+                            rows={3}
+                            maxLength={500}
+                            placeholder="Briefly describe the issue."
+                            className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            value={disputeReason}
+                            onChange={(e) => setDisputeReason(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setShowDisputeConfirm(true)}
+                            disabled={submittingDispute || !disputeReason.trim()}
+                            className="flex-1"
+                          >
+                            {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
+                            Submit Issue
+                          </Button>
+                          <Button variant="outline" onClick={() => { setShowDisputeForm(false); setDisputeReason(""); }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Ready to release — all milestones approved, waiting for manual release or 48h auto-release */}
+              {jobViewState === "ready_to_release" && (
+                <Card className="mb-4 border-blue-200 bg-blue-50">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                        <CheckCircle2 className="size-4" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-medium text-blue-900">All milestones approved</h2>
+                        <p className="text-xs text-blue-700">Release payment to the provider or wait for auto-release.</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleReleasePayment}
+                      disabled={releasing}
+                      className="w-full"
+                    >
+                      {releasing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                      Release payment now
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
-          {jobViewState === "released" && (
-            <Card className="mb-4 border-emerald-200 bg-emerald-50">
-              <CardContent className="space-y-3 p-5 text-center">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <CheckCircle2 className="size-6" />
-                </div>
-                <div>
-                    <h2 className="text-base font-bold text-emerald-900">All settled</h2>
-                  <p className="mt-1 text-sm text-emerald-700">All milestones completed. All done.</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    {data?.allApprovedAt && (
+                      <AutoReleaseCountdown allApprovedAt={data.allApprovedAt} />
+                    )}
 
-          <div className="mt-8 text-center text-xs text-muted-foreground">
-            <p>Powered by <span className="font-medium text-foreground">TrustPoint</span></p>
-            <p className="mt-1">Funds held in protected payment. Released only when you approve.</p>
-          </div>
+                    <div className="border-t border-blue-200 pt-3">
+                      {!showDisputeForm ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowDisputeForm(true)}
+                          className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+                        >
+                          <AlertTriangle className="size-4" />
+                          Report an issue
+                        </Button>
+                      ) : (
+                        <div id="approval-dispute-form" className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="approval-dispute-reason">Briefly describe the issue</Label>
+                            <textarea
+                              id="approval-dispute-reason"
+                              rows={3}
+                              maxLength={500}
+                              placeholder="Briefly describe the issue."
+                              className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              value={disputeReason}
+                              onChange={(e) => setDisputeReason(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => setShowDisputeConfirm(true)}
+                              disabled={submittingDispute || !disputeReason.trim()}
+                              className="flex-1"
+                            >
+                              {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
+                              Submit Issue
+                            </Button>
+                            <Button variant="outline" onClick={() => { setShowDisputeForm(false); setDisputeReason(""); }}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {showDisputeConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                  <Card className="w-full max-w-sm">
+                    <CardContent className="p-5">
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex size-8 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                            <AlertTriangle className="size-4" />
+                          </div>
+                          <h3 className="text-sm font-medium text-foreground">Submit issue?</h3>
+                        </div>
+                        <button onClick={() => setShowDisputeConfirm(false)} className="text-muted-foreground hover:text-foreground">
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                      <p className="mb-5 text-sm text-muted-foreground">
+                        This will pause the payment process. TrustPoint will review both sides before releasing funds.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setShowDisputeConfirm(false)} className="flex-1">Cancel</Button>
+                        <Button onClick={confirmDispute} disabled={submittingDispute} className="flex-1">
+                          {submittingDispute ? <Loader2 className="size-4 animate-spin" /> : "Submit Issue"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {jobViewState === "released" && (
+                <Card className="mb-4 border-emerald-200 bg-emerald-50">
+                  <CardContent className="space-y-3 p-5 text-center">
+                    <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                      <CheckCircle2 className="size-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-emerald-900">All settled</h2>
+                      <p className="mt-1 text-sm text-emerald-700">All milestones completed. All done.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="mt-8 text-center text-xs text-muted-foreground">
+                <p>Powered by <span className="font-medium text-foreground">TrustPoint</span></p>
+                <p className="mt-1">Funds held in protected payment. Released only when you approve.</p>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

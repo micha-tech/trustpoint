@@ -1,117 +1,152 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
-  CircleDollarSign,
-  ClipboardCheck,
-  Clock3,
   FileText,
+  Grip,
   Handshake,
+  HelpCircle,
   LockKeyhole,
+  MessageSquare,
   Scale,
   ShieldCheck,
-  UploadCloud,
   UserCheck,
   Waypoints,
 } from "lucide-react";
+import { TrustPointLogo } from "@/components/TrustPointLogo";
 
 const painPoints = [
-  "Freelancers fear delayed or unpaid invoices.",
-  "Clients fear poor delivery after payment.",
-  "Both sides argue over unclear expectations.",
-  "Evidence gets scattered across WhatsApp, email, and chats.",
-  "Disputes become emotional instead of resolvable.",
+  "You deliver the work. The client doesn't pay.",
+  "You pay upfront. The work never arrives.",
+  "Scope creeps. Milestones blur. Chats get lost.",
+  "Disputes turn into he-said-she-said with no record.",
+];
+
+const examples = [
+  {
+    role: "A developer",
+    project: "building a website for ₦300,000",
+    pain: "wants payment assurance before writing code",
+    outcome: "Client approves milestones. Payment releases on delivery.",
+  },
+  {
+    role: "A designer",
+    project: "creating branding for ₦150,000",
+    pain: "needs scope locked before revisions spiral",
+    outcome: "Deliverables tracked. Revisions documented. No surprises.",
+  },
+  {
+    role: "A consultant",
+    project: "delivering a strategy engagement",
+    pain: "wants clear acceptance criteria before presenting",
+    outcome: "Evidence attached. Client confirms. Payment released.",
+  },
 ];
 
 const workflowSteps = [
   {
-    title: "Create a transaction",
-    desc: "Open a protected workspace for the client, freelancer, project value, and timeline.",
+    title: "Set up the project",
+    desc: "Name the scope, add the client's email, define the total value.",
   },
   {
-    title: "Define scope and milestones",
-    desc: "Record what will be delivered, when it is due, and what acceptance means.",
+    title: "Add milestones",
+    desc: "Break the work into phases with amounts, due dates, and descriptions.",
   },
   {
-    title: "Both parties agree",
-    desc: "Give each side one shared record before work or payment pressure begins.",
+    title: "Share the client link",
+    desc: "The client gets a secure link. No account needed on their end.",
   },
   {
-    title: "Track delivery and evidence",
-    desc: "Attach files, links, updates, approvals, and proof to the transaction timeline.",
+    title: "Deliver and prove it",
+    desc: "Upload evidence for each milestone. The client reviews and approves.",
   },
   {
-    title: "Complete, release, or resolve",
-    desc: "Close cleanly when work is accepted, or use the record to resolve a dispute.",
+    title: "Get paid",
+    desc: "Payment releases on approval or auto-releases after 48 hours.",
   },
 ];
 
 const features: Array<{ icon: LucideIcon; title: string; desc: string }> = [
   {
     icon: FileText,
-    title: "Structured agreement",
-    desc: "Turn loose chats into a clear record of scope, dates, deliverables, and acceptance terms.",
+    title: "Get paid",
+    desc: "Milestone-based release means you get paid when work is approved — not before, not months later.",
   },
   {
-    icon: Waypoints,
-    title: "Milestone tracking",
-    desc: "Split a project into visible checkpoints so delivery and payment expectations stay aligned.",
-  },
-  {
-    icon: UploadCloud,
-    title: "Evidence preservation",
-    desc: "Keep proof of work, revision notes, approvals, and files tied to the transaction.",
-  },
-  {
-    icon: UserCheck,
-    title: "Participant verification",
-    desc: "Make it clearer who is involved before a freelancer or client commits to the work.",
-  },
-  {
-    icon: Clock3,
-    title: "Transaction timeline",
-    desc: "See what changed, who acted, and when key project moments happened.",
+    icon: ShieldCheck,
+    title: "Avoid scams",
+    desc: "Clients don't pay upfront for unproven work. Providers don't deliver without payment assurance.",
   },
   {
     icon: Scale,
-    title: "Dispute-ready records",
-    desc: "Replace scattered screenshots with a structured trail that can be reviewed calmly.",
+    title: "Prevent disputes",
+    desc: "Scope, milestones, and evidence are locked in one shared record. No more he-said-she-said.",
+  },
+  {
+    icon: UserCheck,
+    title: "Protect agreements",
+    desc: "Turn WhatsApp chats and email chains into a structured agreement both sides can see.",
+  },
+  {
+    icon: Grip,
+    title: "Reduce uncertainty",
+    desc: "Milestones make progress visible. Both sides always know what's due and what's done.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Resolve faster",
+    desc: "When issues come up, the full evidence trail is ready for review. No chasing screenshots.",
   },
 ];
 
-const transactionRows = [
-  ["Scope recorded", "Lagos web app MVP", "Complete"],
-  ["Milestone 1", "Wireframes + product flow", "Accepted"],
-  ["Milestone 2", "Frontend build evidence", "In review"],
-  ["Milestone 3", "Launch support", "Queued"],
-];
-
-const trustSignals: Array<{ icon: LucideIcon; label: string }> = [
-  { icon: ClipboardCheck, label: "Scope locked" },
-  { icon: UserCheck, label: "ID checked" },
-  { icon: UploadCloud, label: "Evidence saved" },
-  { icon: Scale, label: "Dispute-ready" },
+const faqs = [
+  {
+    q: "Does the client need to create an account?",
+    a: "No. The client receives a secure link. They verify their email, review milestones, approve delivery, and release payment — all without signing up.",
+  },
+  {
+    q: "How are payments handled?",
+    a: "Funds are held securely by TrustPoint via Paystack. They are released to the provider only when the client approves each milestone. If all milestones are approved, payment auto-releases after 48 hours.",
+  },
+  {
+    q: "What happens if there is a dispute?",
+    a: "Both sides can submit their case. TrustPoint reviews the recorded agreement, milestones, evidence, and communication timeline to reach a fair resolution.",
+  },
+  {
+    q: "Can I use TrustPoint for fixed-price milestone projects?",
+    a: "Yes. That is exactly what it is built for. Break any fixed-price project into milestones, attach evidence to each one, and let the client approve phase by phase.",
+  },
+  {
+    q: "What kind of work works best with TrustPoint?",
+    a: "Digital services: website development, app builds, branding, design, content creation, consulting, marketing campaigns — any project with clear deliverables and milestones.",
+  },
 ];
 
 function LandingHeader() {
   return (
-    <header className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-      <Link href="/" className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-85">
-        <Image src="/logo.png" alt="TrustPoint" width={144} height={72} className="h-11 w-auto sm:h-12" priority />
+    <header className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+      <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2 transition-opacity hover:opacity-85">
+        <TrustPointLogo
+          className="w-[7.75rem] sm:w-[10rem] lg:w-[11.5rem]"
+          priority
+          sizes="(max-width: 640px) 7.75rem, (max-width: 1024px) 10rem, 11.5rem"
+        />
       </Link>
 
-      <nav aria-label="Primary navigation" className="hidden items-center gap-6 md:flex">
-        <Link href="#why-trustpoint" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950">
-          About
+      <nav aria-label="Primary navigation" className="hidden items-center gap-6 lg:flex">
+        <Link href="#pain" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950">
+          The problem
         </Link>
         <Link href="#how-it-works" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950">
           How it works
         </Link>
-        <Link href="#contact" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950">
-          Contact
+        <Link href="#examples" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950">
+          Examples
+        </Link>
+        <Link href="#faq" className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-950">
+          FAQ
         </Link>
       </nav>
 
@@ -124,80 +159,63 @@ function LandingHeader() {
         </Link>
         <Link
           href="/register"
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm shadow-slate-950/15 transition-colors hover:bg-brand-700"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-950 px-3 text-xs font-semibold text-white shadow-sm shadow-slate-950/15 transition-colors hover:bg-brand-700 sm:px-4 sm:text-sm"
         >
-          Start a protected transaction
+          <span className="sm:hidden">Start</span>
+          <span className="hidden sm:inline">Start a protected transaction</span>
         </Link>
       </div>
     </header>
   );
 }
 
-function HeroTransactionPreview() {
+function MilestoneMockup() {
+  const rows = [
+    { label: "Wireframes", status: "Approved", amount: "₦100,000" },
+    { label: "Frontend build", status: "In review", amount: "₦150,000" },
+    { label: "Backend API", status: "In review", amount: "₦150,000" },
+    { label: "Launch support", status: "Queued", amount: "₦100,000" },
+  ];
   return (
-    <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-      <div className="absolute -left-4 top-8 hidden h-24 w-24 rounded-lg border border-emerald-200 bg-emerald-50/90 shadow-sm shadow-emerald-950/5 lg:block" />
-      <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-900/12">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-              <ShieldCheck className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-950">Protected transaction</p>
-              <p className="truncate text-xs font-medium text-slate-500">Lagos web app project</p>
-            </div>
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+            <ShieldCheck className="size-4" />
           </div>
-          <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Demo record</span>
+          <div>
+            <p className="text-sm font-bold text-slate-950">Protected transaction</p>
+            <p className="text-xs text-slate-500">Lagos SaaS dashboard · ₦500,000</p>
+          </div>
         </div>
-
-        <div className="grid gap-0 lg:grid-cols-[1fr_11rem]">
-          <div className="p-4 sm:p-5">
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                ["Project value", "₦500,000"],
-                ["Parties", "Client + developer"],
-                ["Status", "Evidence review"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-lg border border-slate-200 bg-white p-3">
-                  <p className="text-xs font-semibold text-slate-500">{label}</p>
-                  <p className="mt-1 text-sm font-bold text-slate-950">{value}</p>
+        <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">Active</span>
+      </div>
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Milestones</p>
+          <p className="text-xs text-slate-500">2 of 4 approved</p>
+        </div>
+        <div className="mt-3 space-y-2">
+          {rows.map((r) => {
+            const isApproved = r.status === "Approved";
+            return (
+              <div key={r.label} className={`flex items-center justify-between rounded-lg border p-3 ${isApproved ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200"}`}>
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">{r.label}</p>
+                  <p className="text-xs text-slate-500">{r.amount}</p>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-4 rounded-lg border border-slate-200">
-              {transactionRows.map(([title, detail, status], index) => (
-                <div
-                  key={title}
-                  className="grid gap-2 border-b border-slate-200 px-3 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_7.5rem] sm:items-center"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[11px] font-bold text-slate-600">
-                        {index + 1}
-                      </span>
-                      <p className="truncate text-sm font-bold text-slate-950">{title}</p>
-                    </div>
-                    <p className="mt-1 truncate pl-8 text-xs font-medium text-slate-500">{detail}</p>
-                  </div>
-                  <p className="pl-8 text-xs font-bold text-slate-700 sm:pl-0 sm:text-right">{status}</p>
-                </div>
-              ))}
-            </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isApproved ? "bg-emerald-100 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
+                  {r.status}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <div className="flex flex-1 items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <CheckCircle2 className="size-4 text-amber-600" />
+            <p className="text-xs font-semibold text-amber-800">1 milestone awaiting your review</p>
           </div>
-
-          <aside className="border-t border-slate-200 bg-slate-950 p-4 text-white lg:border-l lg:border-t-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Trust signals</p>
-            <div className="mt-4 space-y-3">
-              {trustSignals.map((signal) => (
-                <div key={signal.label} className="flex items-center gap-2 text-sm font-semibold">
-                  <signal.icon className="size-4 shrink-0 text-emerald-300" />
-                  <span>{signal.label}</span>
-                </div>
-              ))}
-            </div>
-          </aside>
         </div>
       </div>
     </div>
@@ -243,10 +261,10 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_31rem] lg:gap-16">
           <div className="min-w-0">
             <h1 className="max-w-4xl text-4xl font-bold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Secure freelance projects before money changes hands.
+              Stop losing money to unclear client agreements and payment disputes.
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              TrustPoint helps clients and freelancers record expectations, agree on milestones, preserve evidence, and reduce payment or delivery disputes.
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+              Record expectations, track milestones, and protect both sides before work begins.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -254,7 +272,7 @@ export default function Home() {
                 href="/register"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-700 px-5 text-sm font-bold text-white shadow-lg shadow-brand-700/20 transition-colors hover:bg-slate-950 sm:px-6"
               >
-                Start a protected transaction
+                Use TrustPoint for your next project
                 <ArrowRight className="size-4" />
               </Link>
               <Link
@@ -268,21 +286,21 @@ export default function Home() {
             <div className="mt-8 flex max-w-2xl items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
               <p className="text-sm font-semibold leading-6 text-slate-700">
-                Built for developers, designers, creators, consultants, and clients handling paid digital work.
+                Built for developers, designers, consultants, and creators — and the clients who hire them.
               </p>
             </div>
           </div>
 
-          <HeroTransactionPreview />
+          <MilestoneMockup />
         </div>
       </section>
 
-      <section id="why-trustpoint" className="border-y border-slate-200 bg-slate-50 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section id="pain" className="border-y border-slate-200 bg-slate-50 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-9 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
             <SectionHeading
-              title="Freelance work breaks when trust is unclear."
-              desc="Digital projects often start inside chat threads. When expectations, proof, and approval steps are not recorded, a normal project can turn into a payment or delivery dispute."
+              title="Freelance transactions are built on trust. And trust gets messy."
+              desc="Digital projects start in DMs, WhatsApp, and email chains. No scope. No milestones. No record. When something goes wrong, there is nothing to point to."
             />
 
             <div className="grid gap-3">
@@ -297,50 +315,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
-          <SectionHeading
-            label="A common transaction"
-            title="A client hires a developer for ₦500,000."
-            desc="The client wants assurance that work will be delivered. The developer wants assurance that payment will not disappear. TrustPoint creates a structured transaction where the scope, milestones, delivery evidence, and acceptance steps are recorded."
-          />
-
-          <div className="rounded-lg border border-slate-200 bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white/55">Example project</p>
-                <h3 className="mt-2 text-2xl font-bold">Lagos SaaS dashboard build</h3>
-              </div>
-              <div className="rounded-lg bg-white/10 px-4 py-3 text-left sm:text-right">
-                <p className="text-xs font-semibold text-white/55">Project value</p>
-                <p className="mt-1 text-xl font-bold">₦500,000</p>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {[
-                ["Client assurance", "Delivery is tracked before acceptance."],
-                ["Developer assurance", "The agreed record is visible before work begins."],
-                ["Shared accountability", "Scope, proof, and decisions stay in one place."],
-              ].map(([title, desc]) => (
-                <div key={title} className="rounded-lg border border-white/10 bg-white/[0.06] p-4">
-                  <p className="text-sm font-bold">{title}</p>
-                  <p className="mt-2 text-sm leading-6 text-white/65">{desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="how-it-works" className="border-y border-slate-200 bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section id="how-it-works" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <SectionHeading
               title="How it works"
-              desc="A simple workflow for turning a risky freelance project into a protected transaction."
+              desc="Set up a protected transaction in 5 minutes."
             />
-            <Link href="/register" className="inline-flex items-center gap-2 text-sm font-bold text-brand-700 hover:text-slate-950">
+            <Link href="/register" className="hidden shrink-0 items-center gap-2 text-sm font-bold text-brand-700 hover:text-slate-950 md:inline-flex">
               Start a protected transaction
               <ArrowRight className="size-4" />
             </Link>
@@ -360,14 +342,66 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          <div className="mt-8 text-center md:hidden">
+            <Link
+              href="/register"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-700 px-6 text-sm font-bold text-white shadow-lg shadow-brand-700/20 transition-colors hover:bg-slate-950"
+            >
+              Start a protected transaction
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section id="examples" className="border-y border-slate-200 bg-slate-50 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeading
+            title="Use this for your next project"
+            desc="TrustPoint works best when you set it up before work begins. Here is what it looks like in practice."
+          />
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            {examples.map((ex) => (
+              <div key={ex.role} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/[0.03]">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                  <Handshake className="size-5" />
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-slate-950">
+                  {ex.role} {ex.project}
+                </h3>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                    <p className="text-sm text-slate-600">{ex.pain}</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                    <p className="text-sm text-slate-600">{ex.outcome}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              href="/register"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-brand-700 px-6 text-sm font-bold text-white shadow-lg shadow-brand-700/20 transition-colors hover:bg-slate-950"
+            >
+              Start Protected Transaction
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
             title="What TrustPoint provides"
-            desc="The MVP focuses on the records and checkpoints that make freelance transactions easier to trust and easier to resolve."
+            desc="Outcomes, not infrastructure."
           />
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -378,84 +412,73 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 rounded-lg border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/[0.04] sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <div className="flex size-12 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-              <Handshake className="size-6" />
-            </div>
-            <h2 className="mt-6 text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">
-              More than escrow. More than project management.
-            </h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              Escrow protects money. Project tools track tasks. TrustPoint combines agreements, milestones, evidence, identity, and accountability into one structured transaction environment.
-            </p>
-          </div>
+      <section id="faq" className="border-y border-slate-200 bg-slate-50 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          <SectionHeading
+            title="Frequently asked questions"
+            desc="The most common questions about how TrustPoint works."
+          />
 
-          <div className="grid gap-3">
-            {[
-              ["Escrow", "Money protection without the full work record."],
-              ["Project management", "Tasks and deadlines without transaction accountability."],
-              ["TrustPoint", "Agreement, milestones, evidence, identity, and dispute-ready records together."],
-            ].map(([title, desc], index) => (
-              <div
-                key={title}
-                className={`rounded-lg border p-4 ${
-                  index === 2
-                    ? "border-brand-200 bg-brand-50 text-brand-950"
-                    : "border-slate-200 bg-slate-50 text-slate-700"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {index === 2 ? (
-                    <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand-700" />
-                  ) : (
-                    <CircleDollarSign className="mt-0.5 size-5 shrink-0 text-slate-400" />
-                  )}
-                  <div>
-                    <p className="text-sm font-bold">{title}</p>
-                    <p className="mt-1 text-sm leading-6 opacity-80">{desc}</p>
-                  </div>
-                </div>
-              </div>
+          <div className="mt-10 space-y-3">
+            {faqs.map((faq) => (
+              <details key={faq.q} className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm shadow-slate-950/[0.03] open:border-brand-200 open:ring-1 open:ring-brand-200">
+                <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-bold text-slate-950 [&::-webkit-details-marker]:hidden">
+                  {faq.q}
+                  <HelpCircle className="size-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{faq.a}</p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="contact" className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div>
-            <div className="flex size-12 items-center justify-center rounded-lg bg-white/10 text-emerald-300">
+      <section className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-lg bg-white/10 text-emerald-300">
               <LockKeyhole className="size-6" />
             </div>
-            <h2 className="mt-6 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">
-              Have a live project you want to protect?
+            <h2 className="mt-6 text-3xl font-bold leading-tight sm:text-4xl">
+              Have a live project right now?
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-white/68">
-              Use TrustPoint for your next client or freelance transaction. Start with a simple protected workflow designed to reduce uncertainty before work begins.
+            <p className="mt-4 text-base leading-7 text-white/68">
+              A developer building a website for a client. A designer creating brand assets. A consultant delivering a strategy engagement. Set up a protected transaction before work starts.
             </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/register"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-bold text-slate-950 shadow-lg shadow-black/20 transition-colors hover:bg-brand-50"
+              >
+                Use TrustPoint for your next project
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-white/20 px-6 text-sm font-bold text-white transition-colors hover:bg-white/10"
+              >
+                Sign in
+              </Link>
+            </div>
           </div>
-
-          <Link
-            href="/register"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-bold text-slate-950 shadow-lg shadow-black/20 transition-colors hover:bg-brand-50"
-          >
-            Start a protected transaction
-            <ArrowRight className="size-4" />
-          </Link>
         </div>
       </section>
 
       <footer className="border-t border-slate-200 bg-white px-4 py-7 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Image src="/logo.png" alt="TrustPoint" width={96} height={48} className="h-9 w-auto opacity-80" />
-            <Link href="#why-trustpoint" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
-              About
+            <TrustPointLogo className="w-[10rem] opacity-80 sm:w-[11rem]" sizes="(max-width: 640px) 10rem, 11rem" />
+            <Link href="#pain" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
+              The problem
             </Link>
-            <Link href="#contact" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
-              Contact
+            <Link href="#how-it-works" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
+              How it works
+            </Link>
+            <Link href="#examples" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
+              Examples
+            </Link>
+            <Link href="#faq" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
+              FAQ
             </Link>
             <Link href="/terms" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
               Terms

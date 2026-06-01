@@ -9,7 +9,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 export const metadata: Metadata = {
   title: "TrustPoint - Trust Assurance for Digital Services",
   description: "A trust operating system for digital service providers and their clients. Protected payments for software developers, designers, and digital creators.",
-  icons: [{ rel: "icon", url: "/logo.png" }],
+  icons: [{ rel: "icon", url: "/trustpoint-icon.png" }],
 };
 
 export default function RootLayout({

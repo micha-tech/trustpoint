@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { TrustPointLogo } from "@/components/TrustPointLogo";
 
 type AuthShellProps = {
   title: string;
@@ -22,7 +22,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl min-w-0 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_25rem]">
         <section className="hidden lg:block">
           <Link href="/" className="inline-flex transition-opacity hover:opacity-85">
-            <Image src="/logo.png" alt="TrustPoint" width={156} height={78} className="h-14 w-auto" priority />
+            <TrustPointLogo className="w-[13rem]" priority sizes="13rem" />
           </Link>
           <div className="mt-12 max-w-xl">
             <div className="mb-6 flex size-12 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
@@ -48,7 +48,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
         <section className="w-full min-w-0">
           <div className="mb-6 text-center lg:hidden">
             <Link href="/" className="inline-block transition-opacity hover:opacity-85">
-              <Image src="/logo.png" alt="TrustPoint" width={124} height={62} className="mx-auto h-12 w-auto" priority />
+              <TrustPointLogo className="mx-auto w-[11rem]" priority sizes="11rem" />
             </Link>
           </div>
 

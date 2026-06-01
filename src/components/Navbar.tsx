@@ -7,7 +7,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { TrustPointLogo } from "@/components/TrustPointLogo";
 import { Menu, X, LogOut } from "lucide-react";
 
 const navLinks = [
@@ -40,8 +40,12 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-border/70 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <Image src="/logo.png" alt="TrustPoint" width={92} height={46} className="h-10 w-auto" priority />
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80">
+          <TrustPointLogo
+            className="w-[9.75rem] sm:w-[10.75rem]"
+            priority
+            sizes="(max-width: 640px) 9.75rem, 10.75rem"
+          />
         </Link>
 
         <Button

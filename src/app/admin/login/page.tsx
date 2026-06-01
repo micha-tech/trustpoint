@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lock, Loader2, Eye, EyeOff, ShieldAlert } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function AdminLoginPage() {

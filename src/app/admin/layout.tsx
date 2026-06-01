@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { TrustPointLogo } from "@/components/TrustPointLogo";
 import {
   LayoutDashboard,
   Scale,
@@ -31,8 +31,8 @@ function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void })
         open ? "translate-x-0" : "-translate-x-full"
       }`}>
         <div className="flex items-center justify-between border-b border-border px-4 py-4">
-          <Link href="/admin/dashboard" className="flex items-center gap-2" onClick={onClose}>
-            <Image src="/logo.png" alt="TrustPoint" width={80} height={40} className="h-9 w-auto" priority />
+          <Link href="/admin/dashboard" className="flex min-w-0 items-center gap-2" onClick={onClose}>
+            <TrustPointLogo className="w-[8.5rem]" priority sizes="8.5rem" />
             <span className="text-xs font-medium text-muted-foreground">Admin</span>
           </Link>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground sm:hidden">
