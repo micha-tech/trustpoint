@@ -7,8 +7,8 @@ type TrustPointLogoProps = {
   sizes?: string;
 };
 
-const LOGO_WIDTH = 1094;
-const LOGO_HEIGHT = 289;
+const LOGO_WIDTH = 1166;
+const LOGO_HEIGHT = 357;
 
 export function TrustPointLogo({
   className,

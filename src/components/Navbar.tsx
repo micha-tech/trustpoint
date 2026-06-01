@@ -22,7 +22,7 @@ export default function Navbar() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/register";
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -35,7 +35,7 @@ export default function Navbar() {
     }
   };
 
-  if (!user || isAuthPage) return null;
+  if (!user || isPublicPage) return null;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/70 bg-white/90 backdrop-blur-xl">
