@@ -93,7 +93,7 @@ function LandingHeader() {
   return (
     <header className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3.5 sm:gap-3 sm:px-6 sm:py-4 lg:px-8">
       <Link href="/" className="min-w-0 shrink-0 transition-opacity hover:opacity-85">
-        <TrustPointLogo size="sm" className="[&>span:last-child]:max-w-[9.25rem]" priority sizes="2.25rem" />
+        <TrustPointLogo size="md" className="[&>span:last-child]:max-w-[9.75rem]" priority sizes="2.5rem" />
       </Link>
 
       <nav aria-label="Primary navigation" className="hidden items-center gap-7 lg:flex">
