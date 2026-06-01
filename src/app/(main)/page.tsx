@@ -91,9 +91,9 @@ const faqs = [
 
 function LandingHeader() {
   return (
-    <header className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+    <header className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3.5 sm:gap-3 sm:px-6 sm:py-4 lg:px-8">
       <Link href="/" className="min-w-0 shrink-0 transition-opacity hover:opacity-85">
-        <TrustPointLogo size="sm" priority sizes="2.25rem" />
+        <TrustPointLogo size="sm" className="[&>span:last-child]:max-w-[9.25rem]" priority sizes="2.25rem" />
       </Link>
 
       <nav aria-label="Primary navigation" className="hidden items-center gap-7 lg:flex">
@@ -120,7 +120,7 @@ function LandingHeader() {
         </Link>
         <Link
           href="/register"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-3 text-xs font-bold text-white shadow-sm shadow-slate-950/15 transition-colors hover:bg-brand-700 sm:px-4 sm:text-sm"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-slate-950 px-3 text-xs font-bold text-white shadow-sm shadow-slate-950/15 transition-colors hover:bg-brand-700 sm:h-10 sm:px-4 sm:text-sm"
         >
           <span className="sm:hidden">Start</span>
           <span className="hidden sm:inline">Get protected</span>
@@ -141,7 +141,7 @@ function SectionHeading({
 }) {
   return (
     <div className={align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
-      <h2 className="text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">{title}</h2>
+      <h2 className="text-2xl font-bold leading-tight text-slate-950 sm:text-4xl">{title}</h2>
       {desc ? <p className="mt-4 text-base leading-7 text-slate-600">{desc}</p> : null}
     </div>
   );
@@ -163,9 +163,9 @@ function TrustSignal({ icon: Icon, title, desc }: { icon: LucideIcon; title: str
 
 function CompactTrustSignal({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm shadow-slate-950/[0.03]">
-      <Icon className="size-4 shrink-0 text-brand-700" />
-      <span className="text-xs font-bold leading-5 text-slate-700">{title}</span>
+    <div className="flex min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2 shadow-sm shadow-slate-950/[0.03] sm:px-3">
+      <Icon className="size-3.5 shrink-0 text-brand-700 sm:size-4" />
+      <span className="min-w-0 text-xs font-bold leading-4 text-slate-700 sm:leading-5">{title}</span>
     </div>
   );
 }
@@ -178,23 +178,23 @@ function TransactionPreview() {
   ];
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-950/10 sm:p-5">
-      <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-4">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-xl shadow-slate-950/[0.08] sm:p-5 sm:shadow-2xl sm:shadow-slate-950/10">
+      <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3 sm:pb-4">
         <div className="min-w-0">
-          <div className="mb-3 flex size-10 items-center justify-center rounded-md bg-brand-50 text-brand-700">
-            <ShieldCheck className="size-5" />
+          <div className="mb-2 flex size-9 items-center justify-center rounded-md bg-brand-50 text-brand-700 sm:mb-3 sm:size-10">
+            <ShieldCheck className="size-4 sm:size-5" />
           </div>
           <p className="text-xs font-bold uppercase text-slate-500">Protected transaction</p>
-          <h3 className="mt-1 text-lg font-bold text-slate-950">Website redesign project</h3>
+          <h3 className="mt-1 text-base font-bold text-slate-950 sm:text-lg">Website redesign project</h3>
           <p className="mt-1 text-sm text-slate-500">Client funded: NGN 400,000</p>
         </div>
         <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Active</span>
       </div>
 
-      <div className="mt-4 rounded-md border border-brand-100 bg-brand-50/70 p-3">
+      <div className="mt-3 rounded-md border border-brand-100 bg-brand-50/70 p-3 sm:mt-4">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-bold text-brand-900">Held before release</span>
-          <span className="text-sm font-bold text-brand-800">NGN 300,000</span>
+          <span className="text-xs font-bold text-brand-900 sm:text-sm">Held before release</span>
+          <span className="text-xs font-bold text-brand-800 sm:text-sm">NGN 300,000</span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
           <div className="h-full w-1/4 rounded-full bg-brand-600" />
@@ -202,11 +202,11 @@ function TransactionPreview() {
         <p className="mt-2 text-xs leading-5 text-brand-900/80">Funds stay protected until the client approves the next milestone.</p>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-3 space-y-2 sm:mt-4">
         {milestones.map((milestone) => (
-          <div key={milestone.name} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-3">
+          <div key={milestone.name} className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2.5 sm:gap-3 sm:px-3 sm:py-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className={`flex size-8 shrink-0 items-center justify-center rounded-md ${milestone.done ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+              <div className={`flex size-7 shrink-0 items-center justify-center rounded-md sm:size-8 ${milestone.done ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                 {milestone.done ? <CheckCircle2 className="size-4" /> : <Grip className="size-4" />}
               </div>
               <div className="min-w-0">
@@ -214,14 +214,14 @@ function TransactionPreview() {
                 <p className="text-xs text-slate-500">{milestone.amount}</p>
               </div>
             </div>
-            <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-bold ${milestone.done ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+            <span className={`shrink-0 rounded-md px-1.5 py-1 text-[11px] font-bold sm:px-2 sm:text-xs ${milestone.done ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
               {milestone.state}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+      <div className="mt-3 flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 sm:mt-4">
         <FileText className="mt-0.5 size-4 shrink-0 text-slate-500" />
         <p className="text-xs font-semibold leading-5 text-slate-600">
           Scope, approval history, and delivery evidence are preserved for review.
@@ -249,33 +249,33 @@ export default function Home() {
     <div className="min-h-screen bg-white text-slate-950">
       <LandingHeader />
 
-      <section className="px-4 pb-12 pt-7 sm:px-6 sm:pb-16 sm:pt-12 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-16">
+      <section className="px-4 pb-10 pt-5 sm:px-6 sm:pb-16 sm:pt-12 lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-16">
           <div className="min-w-0">
-            <h1 className="max-w-4xl text-4xl font-bold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
+            <h1 className="max-w-4xl text-[2.35rem] font-bold leading-[1.03] text-slate-950 min-[380px]:text-4xl sm:text-5xl lg:text-6xl">
               Protected payments for digital service work.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8">
               TrustPoint holds funds, tracks milestones, and releases payment only when work is approved.
             </p>
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:gap-3">
               <Link
                 href="/register"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-brand-700 px-5 text-sm font-bold text-white shadow-lg shadow-brand-700/20 transition-colors hover:bg-slate-950 sm:w-auto sm:px-6"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-brand-700 px-4 text-sm font-bold text-white shadow-lg shadow-brand-700/20 transition-colors hover:bg-slate-950 sm:min-h-12 sm:w-auto sm:px-6"
               >
                 Start a protected transaction
                 <ArrowRight className="size-4" />
               </Link>
               <Link
                 href="#how-it-works"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-5 text-sm font-bold text-slate-950 shadow-sm transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-800 sm:w-auto sm:px-6"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-950 shadow-sm transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-800 sm:min-h-12 sm:w-auto sm:px-6"
               >
                 See how protection works
               </Link>
             </div>
 
-            <div className="mt-7 grid max-w-2xl grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <div className="mt-6 grid max-w-2xl grid-cols-2 gap-2 sm:mt-7 sm:flex sm:flex-wrap">
               {trustSignals.slice(0, 4).map((signal) => (
                 <CompactTrustSignal key={signal.title} icon={signal.icon} title={signal.title} />
               ))}
@@ -336,7 +336,7 @@ export default function Home() {
             <div className="mb-6 flex size-11 items-center justify-center rounded-md bg-white/10 text-emerald-300">
               <ShieldCheck className="size-5" />
             </div>
-            <h2 className="text-2xl font-bold leading-tight sm:text-3xl">For providers: start with payment assurance.</h2>
+            <h2 className="text-[1.65rem] font-bold leading-tight sm:text-3xl">For providers: start with payment assurance.</h2>
             <p className="mt-4 text-sm leading-7 text-slate-300">
               Work can begin with a funded agreement, not a promise buried in a chat thread.
             </p>
@@ -349,7 +349,7 @@ export default function Home() {
             <div className="mb-6 flex size-11 items-center justify-center rounded-md bg-white/10 text-brand-200">
               <UserCheck className="size-5" />
             </div>
-            <h2 className="text-2xl font-bold leading-tight sm:text-3xl">For clients: pay with protection.</h2>
+            <h2 className="text-[1.65rem] font-bold leading-tight sm:text-3xl">For clients: pay with protection.</h2>
             <p className="mt-4 text-sm leading-7 text-slate-300">
               Funds are committed, but release stays tied to clear delivery and approval.
             </p>
@@ -422,7 +422,7 @@ export default function Home() {
           <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-md bg-brand-50 text-brand-700">
             <LockKeyhole className="size-6" />
           </div>
-          <h2 className="text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">
+          <h2 className="text-2xl font-bold leading-tight text-slate-950 sm:text-4xl">
             Set up protection before the next project starts.
           </h2>
           <p className="mt-4 text-base leading-7 text-slate-600">

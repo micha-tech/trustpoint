@@ -16,25 +16,25 @@ const logoSizes = {
     root: "gap-2",
     mark: "size-8",
     name: "text-lg",
-    tagline: "max-w-[8rem] text-[0.42rem] leading-[1.08]",
+    tagline: "max-w-[8rem] text-[8px] leading-[1.08]",
   },
   sm: {
     root: "gap-2",
     mark: "size-9",
-    name: "text-xl",
-    tagline: "max-w-[8.75rem] text-[0.48rem] leading-[1.08]",
+    name: "text-[1.18rem]",
+    tagline: "max-w-[9.25rem] text-[8.5px] leading-[1.08]",
   },
   md: {
     root: "gap-2.5",
     mark: "size-10",
     name: "text-2xl",
-    tagline: "max-w-[10.5rem] text-[0.56rem] leading-[1.08]",
+    tagline: "max-w-[11rem] text-[9.5px] leading-[1.08]",
   },
   lg: {
     root: "gap-3",
     mark: "size-12",
     name: "text-3xl",
-    tagline: "max-w-[13rem] text-[0.66rem] leading-[1.08]",
+    tagline: "max-w-[13rem] text-[10.5px] leading-[1.08]",
   },
 };
 
