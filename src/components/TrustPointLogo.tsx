@@ -4,68 +4,42 @@ import { cn } from "@/lib/utils";
 type TrustPointLogoProps = {
   className?: string;
   priority?: boolean;
-  showTagline?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
   sizes?: string;
 };
 
-const MARK_SIZE = 352;
+const LOGO_WIDTH = 1094;
+const LOGO_HEIGHT = 289;
 
 const logoSizes = {
-  xs: {
-    root: "gap-2",
-    mark: "size-8",
-    name: "text-lg",
-    tagline: "max-w-[8rem] text-[8px] leading-[1.08]",
-  },
-  sm: {
-    root: "gap-2",
-    mark: "size-9",
-    name: "text-[1.18rem]",
-    tagline: "max-w-[9.25rem] text-[8.5px] leading-[1.08]",
-  },
-  md: {
-    root: "gap-2.5",
-    mark: "size-10",
-    name: "text-2xl",
-    tagline: "max-w-[11rem] text-[9.5px] leading-[1.08]",
-  },
-  lg: {
-    root: "gap-3",
-    mark: "size-12",
-    name: "text-3xl",
-    tagline: "max-w-[13rem] text-[10.5px] leading-[1.08]",
-  },
+  xs: "w-[9rem]",
+  sm: "w-[11.25rem]",
+  md: "w-[12.75rem] min-[380px]:w-[13.25rem] sm:w-[14.5rem]",
+  lg: "w-[16.5rem] sm:w-[18rem]",
+};
+
+const logoSizeHints = {
+  xs: "9rem",
+  sm: "11.25rem",
+  md: "(max-width: 379px) 12.75rem, (max-width: 640px) 13.25rem, 14.5rem",
+  lg: "(max-width: 640px) 16.5rem, 18rem",
 };
 
 export function TrustPointLogo({
   className,
   priority = false,
-  showTagline = true,
   size = "sm",
-  sizes = "3rem",
+  sizes,
 }: TrustPointLogoProps) {
-  const logoSize = logoSizes[size];
-
   return (
-    <span className={cn("inline-flex min-w-0 items-center", logoSize.root, className)} aria-label="TrustPoint">
-      <Image
-        src="/trustpoint-icon.png"
-        alt=""
-        width={MARK_SIZE}
-        height={MARK_SIZE}
-        className={cn("block shrink-0", logoSize.mark)}
-        priority={priority}
-        sizes={sizes}
-      />
-      <span className="min-w-0">
-        <span className={cn("block font-extrabold leading-none text-brand-700", logoSize.name)}>TrustPoint</span>
-        {showTagline ? (
-          <span className={cn("mt-0.5 block font-bold text-brand-700", logoSize.tagline)}>
-            The Trust Infrastructure for Digital Commerce.
-          </span>
-        ) : null}
-      </span>
-    </span>
+    <Image
+      src="/logo.png"
+      alt="TrustPoint - The Trust Infrastructure for Digital Commerce."
+      width={LOGO_WIDTH}
+      height={LOGO_HEIGHT}
+      className={cn("block h-auto max-w-full shrink-0", logoSizes[size], className)}
+      priority={priority}
+      sizes={sizes ?? logoSizeHints[size]}
+    />
   );
 }

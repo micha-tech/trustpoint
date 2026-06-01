@@ -32,7 +32,7 @@ function AdminSidebar({ open, onClose }: { open: boolean; onClose: () => void })
       }`}>
         <div className="flex items-center justify-between border-b border-border px-4 py-4">
           <Link href="/admin/dashboard" className="flex min-w-0 items-center gap-2" onClick={onClose}>
-            <TrustPointLogo size="xs" priority sizes="2rem" />
+            <TrustPointLogo size="xs" priority />
             <span className="text-xs font-medium text-muted-foreground">Admin</span>
           </Link>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground sm:hidden">
