@@ -361,7 +361,7 @@ export default function ClientJobPage() {
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-6 sm:px-6">
       <div className="mb-6 text-center">
         <Link href="/" className="inline-block transition-opacity hover:opacity-80">
-          <TrustPointLogo className="mx-auto w-[11.5rem] sm:w-[13rem]" priority sizes="(max-width: 640px) 11.5rem, 13rem" />
+          <TrustPointLogo size="md" className="mx-auto justify-center" priority sizes="2.5rem" />
         </Link>
       </div>
 
