@@ -467,7 +467,6 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white px-4 py-7 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <TrustPointLogo className="w-[10rem] opacity-80 sm:w-[11rem]" sizes="(max-width: 640px) 10rem, 11rem" />
             <Link href="#pain" className="text-sm font-semibold text-slate-500 hover:text-slate-950">
               The problem
             </Link>
