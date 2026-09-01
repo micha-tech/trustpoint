@@ -75,3 +75,6 @@ vercel-env.txt
 .env.production.local
 
 .vercel
+
+# CA certificates are secrets tied to a specific database instance
+certs/

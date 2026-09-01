@@ -7,7 +7,9 @@ import { resolve } from "path";
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function loadCaCert(): string | undefined {
-  const certPath = resolve(process.cwd(), "certs", "aiven-ca.pem");
+  const certPath = process.env.DATABASE_CA_CERT_PATH
+    ? resolve(process.cwd(), process.env.DATABASE_CA_CERT_PATH)
+    : resolve(process.cwd(), "certs", "aiven-ca.pem");
   try {
     return readFileSync(certPath, "utf8");
   } catch {
